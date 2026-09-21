@@ -34,7 +34,7 @@ export class SnippetService {
       title,
       language,
       passwordHash,
-      maxViews: maxViews === 'unlimited' ? null : parseInt(maxViews),
+      maxViews: maxViews === '*' ? null : parseInt(maxViews),
       expiresAt,
     });
 

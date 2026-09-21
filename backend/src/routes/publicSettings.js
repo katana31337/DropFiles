@@ -18,7 +18,7 @@ publicSettingsRouter.get('/public', async (req, res) => {
     res.json({
       retentionDays: config.files.retentionDays,
       maxDownloadsOptions: config.files.maxDownloadsOptions.map(opt => 
-        opt === null ? 'unlimited' : opt
+        opt === null ? '*' : opt
       ),
       maxFileSizeMB: config.files.maxFileSizeMB,
     });

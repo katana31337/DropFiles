@@ -48,7 +48,7 @@ export class FileService {
         mimeType: file.mimetype,
         shortLink,
         passwordHash,
-        maxDownloads: maxDownloads === 'unlimited' ? null : parseInt(maxDownloads),
+        maxDownloads: maxDownloads === '*' ? null : parseInt(maxDownloads),
         expiresAt,
       });
 

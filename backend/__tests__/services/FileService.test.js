@@ -33,13 +33,18 @@ jest.unstable_mockModule('../../src/utils/hash.js', () => ({
   verifyPassword: jest.fn((pwd, hash) => Promise.resolve(hash === `hashed_${pwd}`)),
 }));
 
-jest.unstable_mockModule('pg', () => ({
-  default: {
-    connect: jest.fn(() => ({
-      query: jest.fn(),
-      release: jest.fn(),
-    })),
-  },
+const mockClient = {
+  query: jest.fn(),
+  release: jest.fn(),
+};
+
+const mockPool = {
+  connect: jest.fn(() => mockClient),
+  query: jest.fn(),
+};
+
+jest.unstable_mockModule('../../src/config/database.js', () => ({
+  default: mockPool,
 }));
 
 const { fileRepository } = await import('../../src/repositories/FileRepository.js');
@@ -56,6 +61,13 @@ describe('FileService - сервис работы с файлами', () => {
     jest.clearAllMocks();
     mockStorage = getStorage();
     fileService = new FileService();
+    
+    // Сбрасываем моки клиента БД
+    mockClient.query.mockReset();
+    mockClient.release.mockReset();
+    mockPool.connect.mockReset();
+    mockPool.connect.mockReturnValue(mockClient);
+    mockPool.query.mockReset();
   });
 
   describe('upload - загрузка файла', () => {
@@ -69,7 +81,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       const options = {
         retentionDays: '7',
-        maxDownloads: 'unlimited',
+        maxDownloads: '*',
       };
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
@@ -105,7 +117,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       const options = {
         retentionDays: '7',
-        maxDownloads: 'unlimited',
+        maxDownloads: '*',
         password: 'secret123',
       };
 
@@ -136,7 +148,7 @@ describe('FileService - сервис работы с файлами', () => {
       fileRepository.create.mockRejectedValue(new Error('DB error'));
 
       await expect(
-        fileService.upload(file, { retentionDays: '7', maxDownloads: 'unlimited' }, 'session-1')
+        fileService.upload(file, { retentionDays: '7', maxDownloads: '*' }, 'session-1')
       ).rejects.toThrow('DB error');
 
       expect(mockStorage.remove).toHaveBeenCalledWith('path/to/file');

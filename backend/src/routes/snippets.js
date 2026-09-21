@@ -28,7 +28,7 @@ snippetsRouter.post('/', requireSession, async (req, res) => {
       return res.status(400).json({ error: 'Invalid retention days' });
     }
 
-    const maxV = maxViews === 'unlimited' ? null : parseInt(maxViews);
+    const maxV = maxViews === '*' ? null : parseInt(maxViews);
     if (maxV !== null && !appConfig.files.maxDownloadsOptions.includes(maxV)) {
       return res.status(400).json({ error: 'Invalid max views' });
     }

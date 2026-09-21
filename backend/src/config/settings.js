@@ -151,9 +151,9 @@ export async function getAppConfig() {
         .split(',')
         .map(n => parseInt(n.trim()))
         .filter(n => !isNaN(n)),
-      maxDownloadsOptions: (settings.max_downloads_options || '1,2,5,7,unlimited')
+      maxDownloadsOptions: (settings.max_downloads_options || '1,2,5,7,*')
         .split(',')
-        .map(s => s.trim() === 'unlimited' ? null : parseInt(s)),
+        .map(s => s.trim() === '*' ? null : parseInt(s)),
     },
     session: {
       durationDays: parseInt(settings.session_duration_days) || 7,
@@ -174,8 +174,8 @@ export function validateRetentionDays(value) {
     return { valid: false, error: 'Value must be a string' };
   }
 
-  // Регулярное выражение: одна или более групп "число" разделённых запятыми
-  const pattern = /^\d+(,\d+)*$/;
+  // Регулярное выражение: одна или более групп "число" разделённых запятыми (с возможными пробелами)
+  const pattern = /^\d+(\s*,\s*\d+)*$/;
   
   if (!pattern.test(value.trim())) {
     return { 
@@ -200,26 +200,28 @@ export function validateRetentionDays(value) {
 }
 
 /**
- * Валидация формата max_downloads_options: "число,число,unlimited"
+ * Валидация формата max_downloads_options: "число,число,*"
+ * Поддерживает форматы: "1,3,5,*" или "1, 3, 5, *"
  */
 export function validateMaxDownloadsOptions(value) {
   if (!value || typeof value !== 'string') {
     return { valid: false, error: 'Value must be a string' };
   }
 
-  const pattern = /^(\d+|unlimited)(,(\d+|unlimited))*$/;
+  // Поддерживаем "*" вместо "unlimited"
+  const pattern = /^(\d+|\*)(\s*,\s*(\d+|\*))*$/;
   
   if (!pattern.test(value.trim())) {
     return { 
       valid: false, 
-      error: 'Invalid format. Use: number,number,unlimited (e.g., 1,5,10,unlimited)' 
+      error: 'Invalid format. Use: number,number,* (e.g., 1,5,10,*)' 
     };
   }
 
   const parts = value.split(',').map(s => s.trim());
   
   for (const part of parts) {
-    if (part !== 'unlimited') {
+    if (part !== '*') {
       const num = parseInt(part);
       if (isNaN(num) || num < 1 || num > 10000) {
         return { 
