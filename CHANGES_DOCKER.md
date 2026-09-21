@@ -30,10 +30,23 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 ```
 
 ### `frontend/.dockerignore`
-Исключает ненужные файлы из Docker образа (node_modules, dist, .env и т.д.)
+Исключает ненужные файлы из Docker образа:
+- `node_modules` — устанавливаются внутри контейнера
+- `dist`, `build` — собираются внутри контейнера
+- `.env` файлы — конфигурация через переменные окружения
+- `__tests__`, `*.test.*`, `*.spec.*` — **тесты не попадают в production образ**
+- `vitest.config.*` — конфигурация тестов
+- IDE файлы, OS файлы, логи
 
 ### `backend/.dockerignore`
-Аналогично для backend (исключает node_modules, datastore, __tests__ и т.д.)
+Аналогично для backend:
+- `node_modules` — устанавливаются внутри контейнера
+- `datastore` — данные монтируются как volume
+- `__tests__`, `*.test.*`, `*.spec.*` — **тесты не попадают в production образ**
+- `jest.config.*` — конфигурация тестов
+- `.env` файлы, IDE файлы, OS файлы, логи
+
+**Важно:** Тесты остаются в репозитории и запускаются локально через `npm run test:front` и `npm run test:back`, но не включаются в Docker образы для production.
 
 ## Изменённые файлы
 

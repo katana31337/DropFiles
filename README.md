@@ -16,7 +16,7 @@ Frontend (React + Vite + Tailwind)  →  Backend (Node.js + Express)  →  Postg
 - **Хранилище:** Локальное `/datastore` (расширяемо до S3)
 - **Очистка:** Cron каждые 15 минут
 - **БД:** PostgreSQL
-- **Docker:** Multi-stage build (frontend компилируется внутри контейнера)
+- **Docker:** Multi-stage build (frontend компилируется внутри контейнера, тесты исключены из образов)
 
 ## 📁 Структура
 
