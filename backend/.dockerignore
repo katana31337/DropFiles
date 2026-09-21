@@ -21,9 +21,12 @@ datastore
 Thumbs.db
 
 # Tests
+__tests__
+*.test.*
+*.spec.*
 coverage
 .nyc_output
-__tests__
+jest.config.*
 
 # Misc
 *.log

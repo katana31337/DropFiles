@@ -22,8 +22,12 @@ build
 Thumbs.db
 
 # Tests
+__tests__
+*.test.*
+*.spec.*
 coverage
 .nyc_output
+vitest.config.*
 
 # Misc
 *.log
