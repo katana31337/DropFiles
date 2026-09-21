@@ -2,8 +2,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем package.json и устанавливаем зависимости
+# Копируем package.json и package-lock.json
 COPY package*.json ./
+
+# Устанавливаем только production зависимости
 RUN npm ci --only=production
 
 # Копируем исходный код
