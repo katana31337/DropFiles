@@ -1,8 +1,8 @@
 import { describe, it, expect } from '@jest/globals';
-import { hashPassword, verifyPassword } from '../utils/hash.js';
+import { hashPassword, verifyPassword } from '../../src/utils/hash.js';
 
-describe('hashPassword', () => {
-  it('should hash a password', async () => {
+describe('hashPassword - хэширование паролей', () => {
+  it('должен хэшировать пароль', async () => {
     const password = 'testPassword123';
     const hash = await hashPassword(password);
     
@@ -11,7 +11,7 @@ describe('hashPassword', () => {
     expect(hash.length).toBeGreaterThan(0);
   });
 
-  it('should generate different hashes for same password', async () => {
+  it('должен генерировать разные хэши для одного пароля', async () => {
     const password = 'testPassword123';
     const hash1 = await hashPassword(password);
     const hash2 = await hashPassword(password);
@@ -20,27 +20,27 @@ describe('hashPassword', () => {
     expect(hash1).not.toBe(hash2);
   });
 
-  it('should handle empty password', async () => {
+  it('должен обрабатывать пустой пароль', async () => {
     const hash = await hashPassword('');
     expect(hash).toBeDefined();
     expect(hash.length).toBeGreaterThan(0);
   });
 
-  it('should handle long password', async () => {
+  it('должен обрабатывать длинный пароль', async () => {
     const longPassword = 'a'.repeat(1000);
     const hash = await hashPassword(longPassword);
     expect(hash).toBeDefined();
     expect(hash.length).toBeGreaterThan(0);
   });
 
-  it('should handle special characters', async () => {
+  it('должен обрабатывать специальные символы', async () => {
     const password = '!@#$%^&*()_+-=[]{}|;:,.<>?';
     const hash = await hashPassword(password);
     expect(hash).toBeDefined();
     expect(hash.length).toBeGreaterThan(0);
   });
 
-  it('should handle unicode characters', async () => {
+  it('должен обрабатывать юникод символы', async () => {
     const password = 'пароль123密码';
     const hash = await hashPassword(password);
     expect(hash).toBeDefined();
@@ -48,8 +48,8 @@ describe('hashPassword', () => {
   });
 });
 
-describe('verifyPassword', () => {
-  it('should verify correct password', async () => {
+describe('verifyPassword - проверка паролей', () => {
+  it('должен проверять корректный пароль', async () => {
     const password = 'testPassword123';
     const hash = await hashPassword(password);
     
@@ -57,7 +57,7 @@ describe('verifyPassword', () => {
     expect(isValid).toBe(true);
   });
 
-  it('should reject incorrect password', async () => {
+  it('должен отклонять некорректный пароль', async () => {
     const password = 'testPassword123';
     const hash = await hashPassword(password);
     
@@ -65,7 +65,7 @@ describe('verifyPassword', () => {
     expect(isValid).toBe(false);
   });
 
-  it('should reject empty password when hash was created with password', async () => {
+  it('должен отклонять пустой пароль когда хэш создан с паролем', async () => {
     const password = 'testPassword123';
     const hash = await hashPassword(password);
     
@@ -73,13 +73,13 @@ describe('verifyPassword', () => {
     expect(isValid).toBe(false);
   });
 
-  it('should verify empty password hash', async () => {
+  it('должен проверять хэш пустого пароля', async () => {
     const hash = await hashPassword('');
     const isValid = await verifyPassword('', hash);
     expect(isValid).toBe(true);
   });
 
-  it('should handle special characters correctly', async () => {
+  it('должен корректно обрабатывать специальные символы', async () => {
     const password = '!@#$%^&*()_+-=[]{}|;:,.<>?';
     const hash = await hashPassword(password);
     
@@ -90,7 +90,7 @@ describe('verifyPassword', () => {
     expect(isInvalid).toBe(false);
   });
 
-  it('should handle unicode characters correctly', async () => {
+  it('должен корректно обрабатывать юникод символы', async () => {
     const password = 'пароль123密码';
     const hash = await hashPassword(password);
     
@@ -98,7 +98,7 @@ describe('verifyPassword', () => {
     expect(isValid).toBe(true);
   });
 
-  it('should be case sensitive', async () => {
+  it('должен быть чувствителен к регистру', async () => {
     const password = 'TestPassword123';
     const hash = await hashPassword(password);
     
