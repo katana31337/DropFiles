@@ -6,4 +6,5 @@ export default {
     'src/**/*.js',
     '!src/index.js',
   ],
+  verbose: true,
 };
