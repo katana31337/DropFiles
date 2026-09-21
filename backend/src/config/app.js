@@ -1,12 +1,29 @@
 /**
- * Централизованная конфигурация приложения.
- * Все "магические числа" и настройки собраны здесь.
+ * Статическая конфигурация приложения.
+ * Только инфраструктурные настройки (порт, БД, хранилище).
+ * Бизнес-настройки (лимиты, сроки) хранятся в PostgreSQL и читаются через settings.js
  */
 
 export const config = {
-  // Файлы
+  // Сервер
+  server: {
+    port: parseInt(process.env.PORT || '3001'),
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
+  },
+
+  // Хранилище
+  storage: {
+    type: process.env.STORAGE_TYPE || 'local',
+    datastorePath: process.env.DATASTORE_PATH || './datastore',
+  },
+
+  // Сессии (только имя cookie)
+  session: {
+    cookieName: 'filedrop_session',
+  },
+
+  // Безопасность файлов
   files: {
-    maxFileSizeMB: parseInt(process.env.MAX_FILE_SIZE_MB || '100'),
     allowedMimeTypes: [
       // Изображения
       'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
@@ -31,38 +48,5 @@ export const config = {
     ],
     // Запрещённые расширения (даже если MIME проходит)
     blockedExtensions: ['.exe', '.bat', '.cmd', '.scr', '.msi', '.dll', '.com'],
-    retentionDays: [1, 3, 5, 7, 20, 30],
-    maxDownloadsOptions: [1, 2, 5, 7, null], // null = unlimited
-  },
-
-  // Сессии
-  session: {
-    durationDays: parseInt(process.env.SESSION_DURATION_DAYS || '7'),
-    cookieName: 'filedrop_session',
-  },
-
-  // Хранилище
-  storage: {
-    type: process.env.STORAGE_TYPE || 'local',
-    datastorePath: process.env.DATASTORE_PATH || './datastore',
-  },
-
-  // Сервер
-  server: {
-    port: parseInt(process.env.PORT || '3001'),
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5173',
-  },
-
-  // Rate limiting
-  rateLimit: {
-    uploadWindowMs: 60 * 1000, // 1 минута
-    uploadMaxRequests: 5,      // 5 загрузок в минуту
-    apiWindowMs: 60 * 1000,
-    apiMaxRequests: 60,        // 60 запросов в минуту
-  },
-
-  // Cron
-  cleanup: {
-    intervalMinutes: 15,
   },
 };

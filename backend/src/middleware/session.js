@@ -1,8 +1,9 @@
 import { v4 as uuidv4 } from 'uuid';
 import pool from '../config/database.js';
+import { getAppConfig } from '../config/settings.js';
+import { config } from '../config/app.js';
 
-const SESSION_DURATION_DAYS = parseInt(process.env.SESSION_DURATION_DAYS || '7');
-const COOKIE_NAME = 'filedrop_session';
+const COOKIE_NAME = config.session.cookieName;
 
 /**
  * Middleware для работы с анонимными сессиями.
@@ -15,6 +16,10 @@ const COOKIE_NAME = 'filedrop_session';
  */
 export async function sessionMiddleware(req, res, next) {
   try {
+    // Получаем настройки из БД (с кэшированием)
+    const appConfig = await getAppConfig();
+    const sessionDurationDays = appConfig.session.durationDays;
+
     const token = req.cookies[COOKIE_NAME];
 
     if (token) {
@@ -31,7 +36,7 @@ export async function sessionMiddleware(req, res, next) {
 
         if (expiresAt > now) {
           // Сессия валидна — обновляем активность (rolling expiration)
-          const newExpiresAt = new Date(now.getTime() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+          const newExpiresAt = new Date(now.getTime() + sessionDurationDays * 24 * 60 * 60 * 1000);
           
           await pool.query(
             `UPDATE sessions SET last_activity = $1, expires_at = $2 WHERE id = $3`,
@@ -55,7 +60,7 @@ export async function sessionMiddleware(req, res, next) {
     // Создаём новую сессию
     const newToken = uuidv4();
     const now = new Date();
-    const expiresAt = new Date(now.getTime() + SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    const expiresAt = new Date(now.getTime() + sessionDurationDays * 24 * 60 * 60 * 1000);
 
     const result = await pool.query(
       `INSERT INTO sessions (token, last_activity, expires_at) VALUES ($1, $2, $3) RETURNING id`,
@@ -69,7 +74,7 @@ export async function sessionMiddleware(req, res, next) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60 * 1000,
+      maxAge: sessionDurationDays * 24 * 60 * 60 * 1000,
       path: '/',
     });
 

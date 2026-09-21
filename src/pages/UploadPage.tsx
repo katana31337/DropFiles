@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { useAppStore } from '../store/appStore';
+import { uploadFile } from '../api/client';
 import { RetentionDays, MaxDownloads } from '../types';
 
 function formatFileSize(bytes: number): string {
@@ -26,9 +26,7 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function UploadPage() {
-  const addFile = useAppStore((s) => s.addFile);
-  const maxFileSizeMB = useAppStore((s) => s.maxFileSizeMB);
-  const updateSessionActivity = useAppStore((s) => s.updateSessionActivity);
+  const maxFileSizeMB = 100; // TODO: получать из /api/settings
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [retentionDays, setRetentionDays] = useState<RetentionDays>(7);
@@ -54,10 +52,9 @@ export default function UploadPage() {
           return;
         }
         setSelectedFile(file);
-        updateSessionActivity();
       }
     },
-    [maxFileSizeMB, updateSessionActivity]
+    [maxFileSizeMB]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -74,52 +71,23 @@ export default function UploadPage() {
     setError(null);
 
     try {
-      // Имитация прогресса (в реальности — XMLHttpRequest с onprogress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + Math.random() * 15;
-        });
-      }, 200);
-
-      // TODO: Заменить на реальный API вызов
-      // const formData = new FormData();
-      // formData.append('file', selectedFile);
-      // formData.append('retentionDays', retentionDays.toString());
-      // formData.append('maxDownloads', maxDownloads.toString());
-      // if (usePassword && password) formData.append('password', password);
-      //
-      // const response = await fetch('/api/files/upload', {
-      //   method: 'POST',
-      //   body: formData,
-      //   credentials: 'include',
-      // });
-      // const data = await response.json();
-
-      // Симуляция загрузки
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      const result = addFile({
-        name: selectedFile.name,
-        size: selectedFile.size,
-        type: selectedFile.type,
+      const result = await uploadFile({
+        file: selectedFile,
         retentionDays,
         maxDownloads,
         password: usePassword ? password : undefined,
+        onProgress: (percent) => {
+          setUploadProgress(percent);
+        },
       });
 
       setUploadedLink(result.shortLink);
       setSelectedFile(null);
       setPassword('');
       setUsePassword(false);
-      updateSessionActivity();
     } catch (err) {
-      setError('Ошибка при загрузке файла. Попробуйте ещё раз.');
+      const message = err instanceof Error ? err.message : 'Ошибка при загрузке файла';
+      setError(message);
       console.error('Upload error:', err);
     } finally {
       setIsUploading(false);

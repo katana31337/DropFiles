@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import multer from 'multer';
+import path from 'path';
+import fs from 'fs/promises';
 import pool from '../config/database.js';
 import { config } from '../config/app.js';
+import { getAppConfig } from '../config/settings.js';
 import { getStorage } from '../services/storage/index.js';
 import { generateShortLink, generateStorageFilename } from '../utils/shortLink.js';
 import { hashPassword, verifyPassword } from '../utils/hash.js';
@@ -11,25 +14,40 @@ import { rateLimit } from '../middleware/rateLimit.js';
 
 export const filesRouter = Router();
 
-// Multer — используем disk storage для больших файлов (не забиваем RAM)
+// Multer с diskStorage (файлы пишутся на диск, не в RAM)
+const tempDir = path.join(config.storage.datastorePath, 'temp');
+
+// Создаём temp директорию при старте
+fs.mkdir(tempDir, { recursive: true }).catch(console.error);
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, tempDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
+    cb(null, `${uniqueSuffix}_${file.originalname}`);
+  },
+});
+
 const upload = multer({
-  storage: multer.memoryStorage(), // TODO: заменить на diskStorage для файлов > 10MB
+  storage,
   limits: {
-    fileSize: config.files.maxFileSizeMB * 1024 * 1024,
+    fileSize: 200 * 1024 * 1024, // 200MB хард-лимит (реальный лимит из БД проверяется в validateFile)
     files: 1,
   },
 });
 
 // Rate limiting для загрузки
 const uploadLimiter = rateLimit({
-  windowMs: config.rateLimit.uploadWindowMs,
-  max: config.rateLimit.uploadMaxRequests,
+  windowMs: 60 * 1000,
+  max: 5, // TODO: читать из БД
   keyGenerator: (req) => `upload:${req.session?.id || req.ip}`,
 });
 
 /**
  * POST /api/files/upload
- * Загрузка файла с транзакцией (откат при ошибке)
+ * Загрузка файла с транзакцией и diskStorage
  */
 filesRouter.post(
   '/upload',
@@ -39,17 +57,27 @@ filesRouter.post(
   validateFile,
   async (req, res) => {
     const client = await pool.connect();
+    let tempFilePath = null;
 
     try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file provided' });
+      }
+
+      tempFilePath = req.file.path;
+
       const { retentionDays, maxDownloads, password } = req.body;
 
+      // Получаем настройки из БД
+      const appConfig = await getAppConfig();
+
       // Валидация параметров
-      if (!config.files.retentionDays.includes(parseInt(retentionDays))) {
+      if (!appConfig.files.retentionDays.includes(parseInt(retentionDays))) {
         return res.status(400).json({ error: 'Invalid retention days' });
       }
 
       const maxDl = maxDownloads === 'unlimited' ? null : parseInt(maxDownloads);
-      if (maxDl !== null && !config.files.maxDownloadsOptions.includes(maxDl)) {
+      if (maxDl !== null && !appConfig.files.maxDownloadsOptions.includes(maxDl)) {
         return res.status(400).json({ error: 'Invalid max downloads' });
       }
 
@@ -59,11 +87,12 @@ filesRouter.post(
       // Генерируем уникальную короткую ссылку
       const shortLink = await generateUniqueShortLink(client);
 
-      // Сохраняем файл в хранилище
-      const storage = getStorage();
+      // Сохраняем файл в хранилище (читаем из temp файла)
+      const fileBuffer = await fs.readFile(tempFilePath);
+      const storageService = getStorage();
       const storageFilename = generateStorageFilename(req.file.originalname);
-      const storagePath = await storage.save(
-        req.file.buffer,
+      const storagePath = await storageService.save(
+        fileBuffer,
         storageFilename,
         req.file.mimetype
       );
@@ -99,6 +128,10 @@ filesRouter.post(
         // === КОММИТИМ ТРАНЗАКЦИЮ ===
         await client.query('COMMIT');
 
+        // Удаляем temp файл
+        await fs.unlink(tempFilePath).catch(() => {});
+        tempFilePath = null;
+
         const file = result.rows[0];
 
         res.json({
@@ -113,11 +146,17 @@ filesRouter.post(
         });
       } catch (dbError) {
         // Если БД упала — удаляем уже сохранённый файл
-        await storage.remove(storagePath).catch(() => {});
+        await storageService.remove(storagePath).catch(() => {});
         throw dbError;
       }
     } catch (error) {
       await client.query('ROLLBACK').catch(() => {});
+      
+      // Удаляем temp файл при ошибке
+      if (tempFilePath) {
+        await fs.unlink(tempFilePath).catch(() => {});
+      }
+      
       console.error('Upload error:', error);
       res.status(500).json({ error: 'Upload failed' });
     } finally {
@@ -220,7 +259,7 @@ filesRouter.get('/:shortLink/download', async (req, res) => {
       `SELECT id, original_name, storage_path, file_size, mime_type,
               password_hash, max_downloads, download_count, expires_at, status
        FROM files WHERE short_link = $1
-       FOR UPDATE`, // Блокируем строку для атомарного обновления счётчика
+       FOR UPDATE`,
       [req.params.shortLink]
     );
 
@@ -247,16 +286,16 @@ filesRouter.get('/:shortLink/download', async (req, res) => {
     await client.query('COMMIT');
 
     // Отдаём файл
-    const storage = getStorage();
+    const storageService = getStorage();
     
-    if (storage.getStream) {
-      const stream = await storage.getStream(file.storage_path);
+    if (storageService.getStream) {
+      const stream = await storageService.getStream(file.storage_path);
       res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_name)}"`);
       res.setHeader('Content-Length', file.file_size);
       stream.pipe(res);
     } else {
-      const buffer = await storage.get(file.storage_path);
+      const buffer = await storageService.get(file.storage_path);
       res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_name)}"`);
       res.send(buffer);
@@ -333,8 +372,8 @@ filesRouter.delete('/:id', requireSession, async (req, res) => {
     const file = result.rows[0];
 
     // Удаляем из хранилища
-    const storage = getStorage();
-    await storage.remove(file.storage_path);
+    const storageService = getStorage();
+    await storageService.remove(file.storage_path);
 
     // Удаляем из БД
     await client.query('DELETE FROM files WHERE id = $1', [req.params.id]);
