@@ -56,11 +56,15 @@ sudo ./install.sh
 /datastore/
 ├── uploads/          # Загруженные файлы
 ├── temp/             # Временные файлы при загрузке
-├── postgres/         # Данные PostgreSQL
-└── certs/            # SSL сертификаты
+└── postgres/         # Данные PostgreSQL
+
+/opt/dropfiles/
+└── cert/             # SSL сертификаты
 ```
 
-**Важно:** Файлы хранятся на хосте, а не в Docker volume!
+**Важно:** 
+- Файлы пользователей хранятся в `/datastore` на хосте, а не в Docker volume
+- SSL сертификаты хранятся в `/opt/dropfiles/cert` отдельно от пользовательских данных
 
 ### 6. Генерация конфигурации
 
@@ -130,13 +134,31 @@ ls -lh /datastore/uploads
 sudo rm -rf /datastore/temp/*
 ```
 
+### Управление сертификатами
+
+SSL сертификаты хранятся в `/opt/dropfiles/cert`:
+
+```bash
+# Посмотреть сертификаты
+ls -lh /opt/dropfiles/cert
+
+# Обновить self-signed сертификат (через год)
+sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout /opt/dropfiles/cert/yourdomain.key \
+  -out /opt/dropfiles/cert/yourdomain.crt \
+  -subj "/C=US/ST=State/L=City/O=Organization/CN=yourdomain"
+
+# Перезапустить nginx после обновления
+docker-compose restart nginx
+```
+
 ### Резервное копирование
 
 #### Полная резервная копия
 
 ```bash
-# Создать архив
-sudo tar -czf filedrop-backup-$(date +%Y%m%d).tar.gz /datastore
+# Создать архив (включая сертификаты)
+sudo tar -czf filedrop-backup-$(date +%Y%m%d).tar.gz /datastore /opt/dropfiles
 
 # Восстановить
 sudo tar -xzf filedrop-backup-YYYYMMDD.tar.gz -C /

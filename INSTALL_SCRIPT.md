@@ -34,8 +34,10 @@ sudo ./install.sh
 /datastore/
 ├── uploads/          # Загруженные файлы
 ├── temp/             # Временные файлы
-├── postgres/         # Данные PostgreSQL
-└── certs/            # SSL сертификаты
+└── postgres/         # Данные PostgreSQL
+
+/opt/dropfiles/
+└── cert/             # SSL сертификаты
 ```
 
 ### 6. Генерация конфигурации
@@ -126,7 +128,7 @@ sudo ./install.sh
    Files: /datastore/uploads
    Temp: /datastore/temp
    PostgreSQL: /datastore/postgres
-   Certificates: /datastore/certs
+   Certificates: /opt/dropfiles/cert
 ```
 
 ## Требования

@@ -42,5 +42,6 @@ INSTALL_INFO.txt
 
 # Datastore (if local development)
 /datastore/
+/opt/dropfiles/
 .next/
 *.log

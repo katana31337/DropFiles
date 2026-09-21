@@ -163,7 +163,10 @@ fi
 sudo mkdir -p "$DATASTORE_PATH/uploads"
 sudo mkdir -p "$DATASTORE_PATH/temp"
 sudo mkdir -p "$DATASTORE_PATH/postgres"
-sudo mkdir -p "$DATASTORE_PATH/certs"
+
+# Директория для сертификатов
+CERT_PATH="/opt/dropfiles/cert"
+sudo mkdir -p "$CERT_PATH"
 
 success "Поддиректории созданы"
 
@@ -180,12 +183,12 @@ if [ "$CERT_TYPE" = "self-signed" ]; then
     info "Генерация self-signed сертификата для $DOMAIN..."
     
     sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout "$DATASTORE_PATH/certs/$DOMAIN.key" \
-        -out "$DATASTORE_PATH/certs/$DOMAIN.crt" \
+        -keyout "$CERT_PATH/$DOMAIN.key" \
+        -out "$CERT_PATH/$DOMAIN.crt" \
         -subj "/C=US/ST=State/L=City/O=Organization/CN=$DOMAIN" \
         -addext "subjectAltName=DNS:$DOMAIN,DNS:www.$DOMAIN" 2>/dev/null
     
-    success "Сертификат создан"
+    success "Сертификат создан в $CERT_PATH"
     warning "Важно: Добавьте $DOMAIN в /etc/hosts или настройте DNS"
 fi
 
@@ -222,6 +225,7 @@ EMAIL=$EMAIL
 
 # Storage
 DATASTORE_PATH=$DATASTORE_PATH
+CERT_PATH=$CERT_PATH
 EOF
 
 success ".env файл создан"
@@ -281,7 +285,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx-self-signed.conf:/etc/nginx/nginx.conf:ro
-      - \${DATASTORE_PATH}/certs:/etc/nginx/certs:ro
+      - \${CERT_PATH}:/etc/nginx/certs:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
@@ -343,7 +347,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx-letsencrypt.conf:/etc/nginx/nginx.conf:ro
-      - \${DATASTORE_PATH}/certs:/etc/letsencrypt:ro
+      - \${CERT_PATH}:/etc/letsencrypt:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
@@ -355,7 +359,7 @@ services:
     image: certbot/certbot
     container_name: filedrop-certbot
     volumes:
-      - \${DATASTORE_PATH}/certs:/etc/letsencrypt
+      - \${CERT_PATH}:/etc/letsencrypt
       - \${DATASTORE_PATH}/certbot-www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait \$\${!}; done;'"
     networks:
@@ -401,6 +405,10 @@ http {
         
         ssl_certificate /etc/nginx/certs/$DOMAIN.crt;
         ssl_certificate_key /etc/nginx/certs/$DOMAIN.key;
+        
+        # SSL optimization
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
         
         ssl_protocols TLSv1.2 TLSv1.3;
         ssl_ciphers HIGH:!aNULL:!MD5;
@@ -574,7 +582,7 @@ echo -e "${BLUE}📁 Storage:${NC}"
 echo -e "   Files: $DATASTORE_PATH/uploads"
 echo -e "   Temp: $DATASTORE_PATH/temp"
 echo -e "   PostgreSQL: $DATASTORE_PATH/postgres"
-echo -e "   Certificates: $DATASTORE_PATH/certs"
+echo -e "   Certificates: $CERT_PATH"
 echo ""
 echo -e "${BLUE}📋 Useful Commands:${NC}"
 echo -e "   docker-compose ps          # Статус контейнеров"
@@ -614,7 +622,7 @@ Storage:
   Files: $DATASTORE_PATH/uploads
   Temp: $DATASTORE_PATH/temp
   PostgreSQL: $DATASTORE_PATH/postgres
-  Certificates: $DATASTORE_PATH/certs
+  Certificates: $CERT_PATH
 
 Certificate Type: $CERT_TYPE
 Domain: $DOMAIN
