@@ -25,8 +25,18 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function retentionLabel(days: RetentionDays): string {
+  if (days === 1) return '1 день';
+  if (days < 5) return `${days} дня`;
+  return `${days} дней`;
+}
+
+function downloadLabel(opt: MaxDownloads): string {
+  return opt === 'unlimited' ? 'Без ограничений' : `${opt}`;
+}
+
 export default function UploadPage() {
-  const maxFileSizeMB = 100; // TODO: получать из /api/settings
+  const maxFileSizeMB = 100;
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [retentionDays, setRetentionDays] = useState<RetentionDays>(7);
@@ -88,7 +98,6 @@ export default function UploadPage() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Ошибка при загрузке файла';
       setError(message);
-      console.error('Upload error:', err);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -116,8 +125,8 @@ export default function UploadPage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Анонимная загрузка файлов</h1>
-        <p className="text-white/60">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">Анонимная загрузка файлов</h1>
+        <p className="text-slate-500">
           Загрузите файл и поделитесь ссылкой. Без регистрации, без слежки.
         </p>
       </motion.div>
@@ -129,35 +138,35 @@ export default function UploadPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+            className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm"
           >
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-400" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Файл загружен!</h2>
-              <p className="text-white/60 mb-6">Поделитесь этой ссылкой:</p>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Файл загружен!</h2>
+              <p className="text-slate-500 mb-6">Поделитесь этой ссылкой:</p>
 
-              <div className="flex items-center gap-2 bg-black/30 rounded-lg p-3 mb-6">
-                <Link2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <code className="text-white/90 text-sm flex-1 truncate">
+              <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-3 mb-6">
+                <Link2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                <code className="text-slate-700 text-sm flex-1 truncate">
                   {window.location.origin}/download/{uploadedLink}
                 </code>
                 <button
                   onClick={handleCopy}
-                  className="shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="shrink-0 p-2 hover:bg-slate-200 rounded-lg transition-colors"
                 >
                   {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
+                    <Check className="w-4 h-4 text-green-600" />
                   ) : (
-                    <Copy className="w-4 h-4 text-white/60" />
+                    <Copy className="w-4 h-4 text-slate-500" />
                   )}
                 </button>
               </div>
 
               <button
                 onClick={handleReset}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
               >
                 Загрузить ещё
               </button>
@@ -176,26 +185,26 @@ export default function UploadPage() {
               {...getRootProps()}
               className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all ${
                 isDragActive
-                  ? 'border-purple-400 bg-purple-500/10'
-                  : 'border-white/20 hover:border-white/40 bg-white/5'
+                  ? 'border-indigo-400 bg-indigo-50'
+                  : 'border-slate-300 hover:border-indigo-300 bg-white'
               }`}
             >
               <input {...getInputProps()} />
               {selectedFile ? (
                 <div className="flex items-center justify-center gap-3">
-                  <FileIcon className="w-10 h-10 text-purple-400" />
+                  <FileIcon className="w-10 h-10 text-indigo-500" />
                   <div className="text-left">
-                    <p className="text-white font-medium">{selectedFile.name}</p>
-                    <p className="text-white/50 text-sm">{formatFileSize(selectedFile.size)}</p>
+                    <p className="text-slate-800 font-medium">{selectedFile.name}</p>
+                    <p className="text-slate-500 text-sm">{formatFileSize(selectedFile.size)}</p>
                   </div>
                 </div>
               ) : (
                 <>
-                  <Upload className="w-12 h-12 text-white/40 mx-auto mb-4" />
-                  <p className="text-white/70 mb-2">
+                  <Upload className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-600 mb-2">
                     Перетащите файл сюда или нажмите для выбора
                   </p>
-                  <p className="text-white/40 text-sm">Максимум {maxFileSizeMB} MB</p>
+                  <p className="text-slate-400 text-sm">Максимум {maxFileSizeMB} MB</p>
                 </>
               )}
             </div>
@@ -204,71 +213,72 @@ export default function UploadPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded-lg p-3"
+                className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3"
               >
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-sm">{error}</span>
               </motion.div>
             )}
 
-            {/* Options */}
+            {/* Options — выпадающие списки */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Retention */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Хранить</span>
+                  <Clock className="w-4 h-4 text-indigo-600" />
+                  <label htmlFor="retention" className="text-slate-700 text-sm font-medium">
+                    Срок хранения
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  id="retention"
+                  value={retentionDays}
+                  onChange={(e) => setRetentionDays(parseInt(e.target.value) as RetentionDays)}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
+                >
                   {retentionOptions.map((days) => (
-                    <button
-                      key={days}
-                      onClick={() => setRetentionDays(days)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        retentionDays === days
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
-                    </button>
+                    <option key={days} value={days}>
+                      {retentionLabel(days)}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* Max Downloads */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <Download className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Скачиваний</span>
+                  <Download className="w-4 h-4 text-indigo-600" />
+                  <label htmlFor="maxDownloads" className="text-slate-700 text-sm font-medium">
+                    Максимум скачиваний
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  id="maxDownloads"
+                  value={maxDownloads}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setMaxDownloads(val === 'unlimited' ? 'unlimited' : parseInt(val) as MaxDownloads);
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
+                >
                   {downloadOptions.map((opt) => (
-                    <button
-                      key={String(opt)}
-                      onClick={() => setMaxDownloads(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        maxDownloads === opt
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {opt === 'unlimited' ? '∞' : opt}
-                    </button>
+                    <option key={String(opt)} value={String(opt)}>
+                      {downloadLabel(opt)}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             </div>
 
             {/* Password */}
-            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+            <div className="bg-white rounded-xl p-4 border border-slate-200">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Пароль</span>
+                  <Shield className="w-4 h-4 text-indigo-600" />
+                  <span className="text-slate-700 text-sm font-medium">Пароль</span>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <Lock className={`w-4 h-4 ${usePassword ? 'text-green-400' : 'text-white/30'}`} />
+                  <Lock className={`w-4 h-4 ${usePassword ? 'text-green-600' : 'text-slate-300'}`} />
                   <input
                     type="checkbox"
                     checked={usePassword}
@@ -277,7 +287,7 @@ export default function UploadPage() {
                   />
                   <div
                     className={`w-8 h-4 rounded-full transition-colors ${
-                      usePassword ? 'bg-purple-600' : 'bg-white/20'
+                      usePassword ? 'bg-indigo-600' : 'bg-slate-200'
                     } relative`}
                   >
                     <div
@@ -296,27 +306,27 @@ export default function UploadPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Введите пароль для скачивания"
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               )}
             </div>
 
             {/* Upload Button */}
             <motion.button
-              whileHover={!isUploading ? { scale: 1.02 } : {}}
-              whileTap={!isUploading ? { scale: 0.98 } : {}}
+              whileHover={!isUploading ? { scale: 1.01 } : {}}
+              whileTap={!isUploading ? { scale: 0.99 } : {}}
               onClick={handleUpload}
               disabled={!selectedFile || isUploading}
               className={`w-full py-4 rounded-xl font-medium text-lg transition-all relative overflow-hidden ${
                 selectedFile && !isUploading
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-500/25'
-                  : 'bg-white/10 text-white/30 cursor-not-allowed'
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
               {/* Progress bar background */}
               {isUploading && (
                 <motion.div
-                  className="absolute inset-0 bg-white/10"
+                  className="absolute inset-0 bg-indigo-700"
                   initial={{ width: 0 }}
                   animate={{ width: `${uploadProgress}%` }}
                   transition={{ duration: 0.3 }}

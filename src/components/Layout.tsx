@@ -14,12 +14,12 @@ export default function Layout() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-sm bg-white/5">
+      <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 text-white font-bold text-xl">
-            <FileUp className="w-7 h-7 text-purple-400" />
+          <Link to="/" className="flex items-center gap-2 text-slate-800 font-bold text-xl">
+            <FileUp className="w-7 h-7 text-indigo-600" />
             <span>FileDrop</span>
           </Link>
 
@@ -32,13 +32,13 @@ export default function Layout() {
                   key={item.path}
                   to={item.path}
                   className={`relative px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
-                    isActive ? 'text-white' : 'text-white/60 hover:text-white/90'
+                    isActive ? 'text-indigo-700' : 'text-slate-500 hover:text-slate-700'
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute inset-0 bg-white/10 rounded-lg"
+                      className="absolute inset-0 bg-indigo-50 rounded-lg"
                       transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -51,8 +51,8 @@ export default function Layout() {
 
           {/* Session info */}
           {session && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-white/40">
-              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span>Сессия активна</span>
             </div>
           )}
@@ -65,8 +65,8 @@ export default function Layout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 py-4 text-center text-white/30 text-sm">
+      <footer className="border-t border-slate-200 mt-auto">
+        <div className="max-w-6xl mx-auto px-4 py-4 text-center text-slate-400 text-sm">
           FileDrop — Анонимный обмен файлами • Прототип
         </div>
       </footer>

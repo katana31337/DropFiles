@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText,
   Clock,
   Eye,
   Lock,
@@ -10,12 +8,20 @@ import {
   Copy,
   Check,
   AlertCircle,
-  Code,
 } from 'lucide-react';
 import { RetentionDays, MaxDownloads } from '../types';
 
+function retentionLabel(days: RetentionDays): string {
+  if (days === 1) return '1 день';
+  if (days < 5) return `${days} дня`;
+  return `${days} дней`;
+}
+
+function viewsLabel(opt: MaxDownloads): string {
+  return opt === 'unlimited' ? 'Без ограничений' : `${opt}`;
+}
+
 export default function SnippetPage() {
-  const navigate = useNavigate();
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('');
@@ -38,7 +44,7 @@ export default function SnippetPage() {
 
   const handleCreate = async () => {
     if (!content.trim()) {
-      setError('Content is required');
+      setError('Контент обязателен');
       return;
     }
 
@@ -63,7 +69,7 @@ export default function SnippetPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create snippet');
+        throw new Error(data.error || 'Не удалось создать сниппет');
       }
 
       setCreatedLink(data.shortLink);
@@ -99,8 +105,8 @@ export default function SnippetPage() {
         animate={{ opacity: 1, y: 0 }}
         className="text-center mb-8"
       >
-        <h1 className="text-3xl font-bold text-white mb-2">Поделиться текстом</h1>
-        <p className="text-white/60">
+        <h1 className="text-3xl font-bold text-slate-800 mb-2">Поделиться текстом</h1>
+        <p className="text-slate-500">
           Создайте ссылку на текстовый сниппет с настройками доступа
         </p>
       </motion.div>
@@ -112,35 +118,35 @@ export default function SnippetPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 border border-white/20"
+            className="bg-white rounded-2xl p-8 border border-slate-200 shadow-sm"
           >
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-400" />
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">Сниппет создан!</h2>
-              <p className="text-white/60 mb-6">Поделитесь этой ссылкой:</p>
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Сниппет создан!</h2>
+              <p className="text-slate-500 mb-6">Поделитесь этой ссылкой:</p>
 
-              <div className="flex items-center gap-2 bg-black/30 rounded-lg p-3 mb-6">
-                <Link2 className="w-4 h-4 text-purple-400 shrink-0" />
-                <code className="text-white/90 text-sm flex-1 truncate">
+              <div className="flex items-center gap-2 bg-slate-100 rounded-lg p-3 mb-6">
+                <Link2 className="w-4 h-4 text-indigo-600 shrink-0" />
+                <code className="text-slate-700 text-sm flex-1 truncate">
                   {window.location.origin}/text/{createdLink}
                 </code>
                 <button
                   onClick={handleCopy}
-                  className="shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors"
+                  className="shrink-0 p-2 hover:bg-slate-200 rounded-lg transition-colors"
                 >
                   {copied ? (
-                    <Check className="w-4 h-4 text-green-400" />
+                    <Check className="w-4 h-4 text-green-600" />
                   ) : (
-                    <Copy className="w-4 h-4 text-white/60" />
+                    <Copy className="w-4 h-4 text-slate-500" />
                   )}
                 </button>
               </div>
 
               <button
                 onClick={handleReset}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors font-medium"
               >
                 Создать ещё
               </button>
@@ -155,27 +161,27 @@ export default function SnippetPage() {
             className="space-y-6"
           >
             {/* Content */}
-            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-              <label className="block text-white text-sm font-medium mb-2">
+            <div className="bg-white rounded-xl p-4 border border-slate-200">
+              <label className="block text-slate-700 text-sm font-medium mb-2">
                 Текст сниппета
               </label>
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Вставьте или введите текст..."
-                className="w-full h-48 bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 text-sm font-mono focus:outline-none focus:border-purple-400 resize-none"
+                className="w-full h-48 bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
               />
               <div className="flex justify-between mt-2">
-                <span className="text-white/40 text-xs">
-                  {content.length} / 100,000 символов
+                <span className="text-slate-400 text-xs">
+                  {content.length.toLocaleString()} / 100,000 символов
                 </span>
               </div>
             </div>
 
             {/* Title & Language */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="block text-white text-sm font-medium mb-2">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <label className="block text-slate-700 text-sm font-medium mb-2">
                   Заголовок (опционально)
                 </label>
                 <input
@@ -183,18 +189,18 @@ export default function SnippetPage() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Мой сниппет"
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
 
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-                <label className="block text-white text-sm font-medium mb-2">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <label className="block text-slate-700 text-sm font-medium mb-2">
                   Язык (опционально)
                 </label>
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
                 >
                   <option value="">Не указан</option>
                   {languages.filter(l => l).map(lang => (
@@ -204,64 +210,65 @@ export default function SnippetPage() {
               </div>
             </div>
 
-            {/* Options */}
+            {/* Options — выпадающие списки */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Retention */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Хранить</span>
+                  <Clock className="w-4 h-4 text-indigo-600" />
+                  <label htmlFor="snippet-retention" className="text-slate-700 text-sm font-medium">
+                    Срок хранения
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  id="snippet-retention"
+                  value={retentionDays}
+                  onChange={(e) => setRetentionDays(parseInt(e.target.value) as RetentionDays)}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
+                >
                   {retentionOptions.map((days) => (
-                    <button
-                      key={days}
-                      onClick={() => setRetentionDays(days)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        retentionDays === days
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {days} {days === 1 ? 'день' : days < 5 ? 'дня' : 'дней'}
-                    </button>
+                    <option key={days} value={days}>
+                      {retentionLabel(days)}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               {/* Max Views */}
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <Eye className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Просмотров</span>
+                  <Eye className="w-4 h-4 text-indigo-600" />
+                  <label htmlFor="snippet-views" className="text-slate-700 text-sm font-medium">
+                    Максимум просмотров
+                  </label>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  id="snippet-views"
+                  value={maxViews}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setMaxViews(val === 'unlimited' ? 'unlimited' : parseInt(val) as MaxDownloads);
+                  }}
+                  className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
+                >
                   {viewOptions.map((opt) => (
-                    <button
-                      key={String(opt)}
-                      onClick={() => setMaxViews(opt)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        maxViews === opt
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
-                    >
-                      {opt === 'unlimited' ? '∞' : opt}
-                    </button>
+                    <option key={String(opt)} value={String(opt)}>
+                      {viewsLabel(opt)}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
             </div>
 
             {/* Password */}
-            <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+            <div className="bg-white rounded-xl p-4 border border-slate-200">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-purple-400" />
-                  <span className="text-white text-sm font-medium">Пароль</span>
+                  <Lock className="w-4 h-4 text-indigo-600" />
+                  <span className="text-slate-700 text-sm font-medium">Пароль</span>
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <Lock className={`w-4 h-4 ${usePassword ? 'text-green-400' : 'text-white/30'}`} />
+                  <Lock className={`w-4 h-4 ${usePassword ? 'text-green-600' : 'text-slate-300'}`} />
                   <input
                     type="checkbox"
                     checked={usePassword}
@@ -270,7 +277,7 @@ export default function SnippetPage() {
                   />
                   <div
                     className={`w-8 h-4 rounded-full transition-colors ${
-                      usePassword ? 'bg-purple-600' : 'bg-white/20'
+                      usePassword ? 'bg-indigo-600' : 'bg-slate-200'
                     } relative`}
                   >
                     <div
@@ -289,7 +296,7 @@ export default function SnippetPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Введите пароль для просмотра"
-                  className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-white/30 text-sm focus:outline-none focus:border-purple-400"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 />
               )}
             </div>
@@ -298,7 +305,7 @@ export default function SnippetPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center gap-2 text-red-400 bg-red-500/10 rounded-lg p-3"
+                className="flex items-center gap-2 text-red-600 bg-red-50 border border-red-200 rounded-lg p-3"
               >
                 <AlertCircle className="w-4 h-4" />
                 <span className="text-sm">{error}</span>
@@ -307,14 +314,14 @@ export default function SnippetPage() {
 
             {/* Create Button */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
               onClick={handleCreate}
               disabled={!content.trim() || loading}
               className={`w-full py-4 rounded-xl font-medium text-lg transition-all ${
                 content.trim() && !loading
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-500/25'
-                  : 'bg-white/10 text-white/30 cursor-not-allowed'
+                  ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
               {loading ? 'Создание...' : 'Создать сниппет'}

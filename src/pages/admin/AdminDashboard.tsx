@@ -12,7 +12,7 @@ import {
   Check,
 } from 'lucide-react';
 
-interface Settings {
+interface SettingsData {
   files: {
     maxFileSizeMB: number;
     retentionDays: number[];
@@ -38,14 +38,13 @@ interface Stats {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<Settings | null>(null);
+  const [settings, setSettings] = useState<SettingsData | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [username, setUsername] = useState('');
 
-  // Form state
   const [maxFileSizeMB, setMaxFileSizeMB] = useState(100);
   const [sessionDurationDays, setSessionDurationDays] = useState(7);
   const [uploadRateLimit, setUploadRateLimit] = useState(5);
@@ -154,26 +153,26 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-slate-500">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="border-b border-white/10 backdrop-blur-sm bg-white/5">
+      <header className="border-b border-slate-200 bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Shield className="w-7 h-7 text-purple-400" />
-            <h1 className="text-xl font-bold text-white">Admin Panel</h1>
+            <Shield className="w-7 h-7 text-indigo-600" />
+            <h1 className="text-xl font-bold text-slate-800">Admin Panel</h1>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-white/60 text-sm">{username}</span>
+            <span className="text-slate-500 text-sm">{username}</span>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white/80 text-sm transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-600 text-sm transition-colors"
             >
               <LogOut className="w-4 h-4" />
               Logout
@@ -220,64 +219,64 @@ export default function AdminDashboard() {
         )}
 
         {/* Settings */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20">
+        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
           <div className="flex items-center gap-2 mb-6">
-            <Settings className="w-5 h-5 text-purple-400" />
-            <h2 className="text-xl font-bold text-white">Settings</h2>
+            <Settings className="w-5 h-5 text-indigo-600" />
+            <h2 className="text-xl font-bold text-slate-800">Settings</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-white/80 text-sm mb-2">
+              <label className="block text-slate-700 text-sm mb-2">
                 Max File Size (MB)
               </label>
               <input
                 type="number"
                 value={maxFileSizeMB}
                 onChange={(e) => setMaxFileSizeMB(parseInt(e.target.value))}
-                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 min={1}
                 max={10000}
               />
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm mb-2">
+              <label className="block text-slate-700 text-sm mb-2">
                 Session Duration (days)
               </label>
               <input
                 type="number"
                 value={sessionDurationDays}
                 onChange={(e) => setSessionDurationDays(parseInt(e.target.value))}
-                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 min={1}
                 max={365}
               />
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm mb-2">
+              <label className="block text-slate-700 text-sm mb-2">
                 Upload Rate Limit (per minute)
               </label>
               <input
                 type="number"
                 value={uploadRateLimit}
                 onChange={(e) => setUploadRateLimit(parseInt(e.target.value))}
-                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 min={1}
                 max={1000}
               />
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm mb-2">
+              <label className="block text-slate-700 text-sm mb-2">
                 API Rate Limit (per minute)
               </label>
               <input
                 type="number"
                 value={apiRateLimit}
                 onChange={(e) => setApiRateLimit(parseInt(e.target.value))}
-                className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-400"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                 min={1}
                 max={10000}
               />
@@ -286,10 +285,10 @@ export default function AdminDashboard() {
 
           {message && (
             <div
-              className={`mt-4 flex items-center gap-2 rounded-lg p-3 ${
+              className={`mt-4 flex items-center gap-2 rounded-lg p-3 border ${
                 message.includes('success')
-                  ? 'text-green-400 bg-green-500/10'
-                  : 'text-red-400 bg-red-500/10'
+                  ? 'text-green-700 bg-green-50 border-green-200'
+                  : 'text-red-700 bg-red-50 border-red-200'
               }`}
             >
               {message.includes('success') ? (
@@ -304,7 +303,7 @@ export default function AdminDashboard() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="mt-6 flex items-center gap-2 px-6 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+            className="mt-6 flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
             {saving ? 'Saving...' : 'Save Settings'}
@@ -325,10 +324,10 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-      <div className="flex items-center gap-2 text-purple-400 mb-2">{icon}</div>
-      <div className="text-2xl font-bold text-white mb-1">{value}</div>
-      <div className="text-white/50 text-xs">{label}</div>
+    <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+      <div className="flex items-center gap-2 text-indigo-600 mb-2">{icon}</div>
+      <div className="text-2xl font-bold text-slate-800 mb-1">{value}</div>
+      <div className="text-slate-500 text-xs">{label}</div>
     </div>
   );
 }

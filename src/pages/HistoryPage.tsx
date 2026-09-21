@@ -48,11 +48,11 @@ export default function HistoryPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-lg rounded-2xl p-12 border border-white/20"
+          className="bg-white rounded-2xl p-12 border border-slate-200 shadow-sm"
         >
-          <FileIcon className="w-16 h-16 text-white/20 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-white mb-2">История пуста</h2>
-          <p className="text-white/60">
+          <FileIcon className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-800 mb-2">История пуста</h2>
+          <p className="text-slate-500">
             Здесь будут отображаться ваши загруженные файлы
           </p>
         </motion.div>
@@ -66,7 +66,7 @@ export default function HistoryPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        <h1 className="text-2xl font-bold text-white mb-6">История загрузок</h1>
+        <h1 className="text-2xl font-bold text-slate-800 mb-6">История загрузок</h1>
 
         <div className="space-y-3">
           {files.map((file, index) => {
@@ -80,25 +80,25 @@ export default function HistoryPage() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className={`bg-white/5 backdrop-blur-sm rounded-xl p-4 border transition-all ${
-                  isActive ? 'border-white/10' : 'border-red-500/20 opacity-60'
+                className={`bg-white rounded-xl p-4 border transition-all ${
+                  isActive ? 'border-slate-200 shadow-sm' : 'border-red-200 bg-red-50 opacity-60'
                 }`}
               >
                 <div className="flex items-start gap-4">
                   {/* File icon */}
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${
-                    isActive ? 'bg-purple-500/20' : 'bg-red-500/20'
+                    isActive ? 'bg-indigo-100' : 'bg-red-100'
                   }`}>
-                    <FileIcon className={`w-5 h-5 ${isActive ? 'text-purple-400' : 'text-red-400'}`} />
+                    <FileIcon className={`w-5 h-5 ${isActive ? 'text-indigo-600' : 'text-red-500'}`} />
                   </div>
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-white font-medium truncate">{file.name}</h3>
-                      {file.hasPassword && <Lock className="w-3 h-3 text-green-400 shrink-0" />}
+                      <h3 className="text-slate-800 font-medium truncate">{file.name}</h3>
+                      {file.hasPassword && <Lock className="w-3 h-3 text-green-600 shrink-0" />}
                     </div>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-white/50">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
                       <span>{formatFileSize(file.size)}</span>
                       <span className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -116,21 +116,21 @@ export default function HistoryPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleCopy(file.shortLink, file.id)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                       title="Копировать ссылку"
                     >
                       {copiedId === file.id ? (
-                        <Check className="w-4 h-4 text-green-400" />
+                        <Check className="w-4 h-4 text-green-600" />
                       ) : (
-                        <Link2 className="w-4 h-4 text-white/50" />
+                        <Link2 className="w-4 h-4 text-slate-400" />
                       )}
                     </button>
                     <button
                       onClick={() => removeFile(file.id)}
-                      className="p-2 hover:bg-red-500/20 rounded-lg transition-colors"
+                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                       title="Удалить"
                     >
-                      <Trash2 className="w-4 h-4 text-white/50 hover:text-red-400" />
+                      <Trash2 className="w-4 h-4 text-slate-400 hover:text-red-500" />
                     </button>
                   </div>
                 </div>
