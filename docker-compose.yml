@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: filedrop-postgres
+    environment:
+      POSTGRES_DB: filedrop
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - filedrop-network
+
+  # Backend сервер
+  backend:
+    build: ./backend
+    container_name: filedrop-backend
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=filedrop
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - STORAGE_TYPE=local
+      - DATASTORE_PATH=/app/datastore
+      - FRONTEND_URL=http://localhost:5173
+      - ADMIN_SECRET_PATH=/my-secret-admin-xyz789
+      - JWT_SECRET=change-this-to-a-random-secret-string-at-least-32-chars
+    volumes:
+      - datastore:/app/datastore
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - filedrop-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  datastore:
+
+networks:
+  filedrop-network:
+    driver: bridge

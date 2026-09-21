@@ -12,7 +12,9 @@ import { sessionMiddleware } from './middleware/session.js';
 import { rateLimit } from './middleware/rateLimit.js';
 import { filesRouter } from './routes/files.js';
 import { sessionsRouter } from './routes/sessions.js';
-import { settingsRouter } from './routes/settings.js';
+import { snippetsRouter } from './routes/snippets.js';
+import { adminRouter } from './routes/admin.js';
+import { adminPanelRouter } from './routes/adminPanel.js';
 import { startCleanupJob } from './services/CleanupService.js';
 
 dotenv.config();
@@ -29,14 +31,12 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
-
-// Trust proxy (для корректного определения IP за nginx)
 app.set('trust proxy', 1);
 
-// Global rate limiting (статический лимит, динамический будет в middleware)
+// Global rate limiting
 app.use('/api/', rateLimit({
   windowMs: 60 * 1000,
-  max: 100, // Дефолт, реальный лимит из БД применяется в settingsRouter
+  max: 100,
 }));
 
 // Session middleware
@@ -45,9 +45,16 @@ app.use(sessionMiddleware);
 // Routes
 app.use('/api/files', filesRouter);
 app.use('/api/sessions', sessionsRouter);
-app.use('/api/settings', settingsRouter);
+app.use('/api/snippets', snippetsRouter);
 
-// Health check (без rate limiting)
+// Admin routes
+app.use('/api/admin', adminRouter); // /api/admin/setup, /api/admin/login, /api/admin/status
+
+// Secret admin panel URL (из .env)
+const adminSecretPath = process.env.ADMIN_SECRET_PATH || '/secret-admin-panel';
+app.use(`/api${adminSecretPath}`, adminPanelRouter);
+
+// Health check
 app.get('/api/health', async (req, res) => {
   try {
     const appConfig = await getAppConfig();
@@ -60,7 +67,6 @@ app.get('/api/health', async (req, res) => {
         maxFileSizeMB: appConfig.files.maxFileSizeMB,
         sessionDurationDays: appConfig.session.durationDays,
         storageType: config.storage.type,
-        retentionDays: appConfig.files.retentionDays,
       },
     });
   } catch (error) {
@@ -83,7 +89,6 @@ app.use('/api/*', (req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   
-  // Multer errors
   if (err.code === 'LIMIT_FILE_SIZE') {
     return res.status(413).json({ 
       error: `File too large. Maximum: ${config.files.maxFileSizeMB} MB` 
@@ -99,7 +104,6 @@ async function start() {
     await initDatabase();
     console.log('✓ Database initialized');
 
-    // Загружаем настройки из БД
     const appConfig = await getAppConfig();
     console.log('✓ Settings loaded from database');
 
@@ -111,7 +115,7 @@ async function start() {
       console.log(`  Storage: ${config.storage.type} → ${config.storage.datastorePath}`);
       console.log(`  Max file size: ${appConfig.files.maxFileSizeMB} MB`);
       console.log(`  Session duration: ${appConfig.session.durationDays} days`);
-      console.log(`  Retention options: ${appConfig.files.retentionDays.join(', ')} days`);
+      console.log(`  Admin panel: /api${process.env.ADMIN_SECRET_PATH || '/secret-admin-panel'}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

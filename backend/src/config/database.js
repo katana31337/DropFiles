@@ -57,13 +57,48 @@ export async function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
     `);
 
+    // Таблица администраторов
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        username VARCHAR(64) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        last_login TIMESTAMP WITH TIME ZONE
+      );
+    `);
+
+    // Таблица текстовых сниппетов
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS text_snippets (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        session_id UUID REFERENCES sessions(id) ON DELETE CASCADE,
+        short_link VARCHAR(16) UNIQUE NOT NULL,
+        content TEXT NOT NULL,
+        title VARCHAR(255),
+        language VARCHAR(32),
+        password_hash VARCHAR(255),
+        max_views INTEGER,
+        view_count INTEGER DEFAULT 0,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        status VARCHAR(20) DEFAULT 'active'
+      );
+    `);
+
     // Начальные настройки
     await client.query(`
       INSERT INTO settings (key, value) VALUES
         ('max_file_size_mb', '100'),
         ('session_duration_days', '7'),
         ('retention_options', '1,3,5,7,20,30'),
-        ('max_downloads_options', '1,2,5,7,unlimited')
+        ('max_downloads_options', '1,2,5,7,unlimited'),
+        ('upload_rate_limit', '5'),
+        ('api_rate_limit', '60'),
+        ('is_setup_complete', 'false'),
+        ('admin_secret_path', ''),
+        ('notification_email', ''),
+        ('notification_webhook', '')
       ON CONFLICT (key) DO NOTHING;
     `);
 

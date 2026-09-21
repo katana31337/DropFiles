@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, History, FileUp } from 'lucide-react';
+import { Upload, History, FileUp, FileText } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 
 export default function Layout() {
@@ -9,6 +9,7 @@ export default function Layout() {
 
   const navItems = [
     { path: '/', label: 'Загрузить', icon: Upload },
+    { path: '/snippet', label: 'Текст', icon: FileText },
     { path: '/history', label: 'История', icon: History },
   ];
 
