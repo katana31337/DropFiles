@@ -1,17 +1,45 @@
-/**
- * API клиент с поддержкой прогресса загрузки.
- * Использует XMLHttpRequest вместо fetch для отслеживания прогресса.
- */
+import { RetentionDays, MaxDownloads } from '../types';
 
-interface UploadOptions {
+const API_BASE = '/api';
+
+/**
+ * Универсальный fetch wrapper
+ */
+async function apiRequest<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_BASE}${endpoint}`;
+  
+  const response = await fetch(url, {
+    credentials: 'include',
+    ...options,
+    headers: {
+      ...options.headers,
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// ============================================
+// FILES API
+// ============================================
+
+export interface UploadFileOptions {
   file: File;
-  retentionDays: number;
-  maxDownloads: number | 'unlimited';
+  retentionDays: RetentionDays;
+  maxDownloads: MaxDownloads;
   password?: string;
   onProgress?: (percent: number) => void;
 }
 
-interface UploadResponse {
+export interface UploadResponse {
   id: string;
   shortLink: string;
   name: string;
@@ -22,7 +50,36 @@ interface UploadResponse {
   hasPassword: boolean;
 }
 
-export async function uploadFile(options: UploadOptions): Promise<UploadResponse> {
+export interface FileInfo {
+  name: string;
+  size: number;
+  mimeType: string;
+  hasPassword: boolean;
+  maxDownloads: number | null;
+  downloadCount: number;
+  expiresAt: string;
+  status: 'active' | 'expired' | 'max_downloads_reached';
+  createdAt: string;
+}
+
+export interface FileHistoryItem {
+  id: string;
+  name: string;
+  size: number;
+  mimeType: string;
+  shortLink: string;
+  maxDownloads: number | null;
+  downloadCount: number;
+  expiresAt: string;
+  status: 'active' | 'expired' | 'max_downloads_reached';
+  hasPassword: boolean;
+  createdAt: string;
+}
+
+/**
+ * Загрузка файла с прогрессом
+ */
+export function uploadFile(options: UploadFileOptions): Promise<UploadResponse> {
   const { file, retentionDays, maxDownloads, password, onProgress } = options;
 
   return new Promise((resolve, reject) => {
@@ -36,7 +93,6 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResponse
       formData.append('password', password);
     }
 
-    // Прогресс загрузки
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && onProgress) {
         const percent = (event.loaded / event.total) * 100;
@@ -62,16 +118,11 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResponse
       }
     };
 
-    xhr.onerror = () => {
-      reject(new Error('Network error'));
-    };
+    xhr.onerror = () => reject(new Error('Network error'));
+    xhr.onabort = () => reject(new Error('Upload aborted'));
 
-    xhr.onabort = () => {
-      reject(new Error('Upload aborted'));
-    };
-
-    xhr.open('POST', '/api/files/upload');
-    xhr.withCredentials = true; // Для отправки cookie
+    xhr.open('POST', `${API_BASE}/files/upload`);
+    xhr.withCredentials = true;
     xhr.send(formData);
   });
 }
@@ -79,83 +130,244 @@ export async function uploadFile(options: UploadOptions): Promise<UploadResponse
 /**
  * Получить информацию о файле
  */
-export async function getFileInfo(shortLink: string) {
-  const response = await fetch(`/api/files/${shortLink}/info`, {
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to get file info`);
-  }
-
-  return response.json();
+export function getFileInfo(shortLink: string): Promise<FileInfo> {
+  return apiRequest(`/files/${shortLink}/info`);
 }
 
 /**
  * Проверить пароль для файла
  */
-export async function verifyPassword(shortLink: string, password: string) {
-  const response = await fetch(`/api/files/${shortLink}/verify-password`, {
+export function verifyFilePassword(shortLink: string, password: string): Promise<{ valid: boolean }> {
+  return apiRequest(`/files/${shortLink}/verify-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
     body: JSON.stringify({ password }),
   });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to verify password`);
-  }
-
-  return response.json();
 }
 
 /**
  * Получить историю файлов
  */
-export async function getHistory() {
-  const response = await fetch('/api/files/history', {
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to get history`);
-  }
-
-  return response.json();
+export function getFileHistory(): Promise<{ files: FileHistoryItem[] }> {
+  return apiRequest('/files/history');
 }
 
 /**
  * Удалить файл
  */
-export async function deleteFile(fileId: string) {
-  const response = await fetch(`/api/files/${fileId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
+export function deleteFile(fileId: string): Promise<{ success: boolean }> {
+  return apiRequest(`/files/${fileId}`, { method: 'DELETE' });
+}
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to delete file`);
-  }
+// ============================================
+// SNIPPETS API
+// ============================================
 
-  return response.json();
+export interface CreateSnippetOptions {
+  content: string;
+  title?: string;
+  language?: string;
+  retentionDays: RetentionDays;
+  maxViews: MaxDownloads;
+  password?: string;
+}
+
+export interface SnippetResponse {
+  id: string;
+  shortLink: string;
+  title: string | null;
+  language: string | null;
+  viewUrl: string;
+  expiresAt: string;
+  maxViews: number | null;
+  hasPassword: boolean;
+}
+
+export interface SnippetInfo {
+  content: string;
+  title: string | null;
+  language: string | null;
+  hasPassword: boolean;
+  maxViews: number | null;
+  viewCount: number;
+  expiresAt: string;
+}
+
+export interface SnippetHistoryItem {
+  id: string;
+  shortLink: string;
+  title: string | null;
+  language: string | null;
+  maxViews: number | null;
+  viewCount: number;
+  expiresAt: string;
+  status: 'active' | 'expired' | 'max_views_reached';
+  hasPassword: boolean;
+  createdAt: string;
 }
 
 /**
- * Получить настройки
+ * Создать сниппет
  */
-export async function getSettings() {
-  const response = await fetch('/api/settings', {
-    credentials: 'include',
+export function createSnippet(options: CreateSnippetOptions): Promise<SnippetResponse> {
+  return apiRequest('/snippets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(options),
   });
+}
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-    throw new Error(error.error || `Failed to get settings`);
-  }
+/**
+ * Получить сниппет
+ */
+export function getSnippet(shortLink: string): Promise<SnippetInfo> {
+  return apiRequest(`/snippets/${shortLink}`);
+}
 
-  return response.json();
+/**
+ * Проверить пароль для сниппета
+ */
+export function verifySnippetPassword(shortLink: string, password: string): Promise<{ valid: boolean }> {
+  return apiRequest(`/snippets/${shortLink}/verify-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+}
+
+/**
+ * Увеличить счётчик просмотров
+ */
+export function incrementSnippetView(shortLink: string): Promise<void> {
+  return apiRequest(`/snippets/${shortLink}/view`, { method: 'POST' });
+}
+
+/**
+ * Получить историю сниппетов
+ */
+export function getSnippetHistory(): Promise<{ snippets: SnippetHistoryItem[] }> {
+  return apiRequest('/snippets/history');
+}
+
+// ============================================
+// SESSIONS API
+// ============================================
+
+export interface SessionInfo {
+  id: string;
+  expiresAt: string;
+  expiresIn: number;
+}
+
+/**
+ * Получить информацию о сессии
+ */
+export function getSessionInfo(): Promise<SessionInfo> {
+  return apiRequest('/sessions/me');
+}
+
+/**
+ * Удалить сессию
+ */
+export function deleteSession(): Promise<{ success: boolean }> {
+  return apiRequest('/sessions/me', { method: 'DELETE' });
+}
+
+// ============================================
+// ADMIN API
+// ============================================
+
+export interface AdminStatus {
+  isSetupComplete: boolean;
+}
+
+export interface AdminLoginResponse {
+  success: boolean;
+  token: string;
+  username: string;
+}
+
+export interface AdminSettings {
+  files: {
+    maxFileSizeMB: number;
+    retentionDays: number[];
+    maxDownloadsOptions: (number | null)[];
+  };
+  session: {
+    durationDays: number;
+  };
+  rateLimit: {
+    uploadPerMinute: number;
+    apiPerMinute: number;
+  };
+}
+
+export interface AdminStats {
+  activeSessions: number;
+  totalFiles: number;
+  activeFiles: number;
+  totalSizeBytes: number;
+  totalDownloads: number;
+  totalSnippets: number;
+}
+
+/**
+ * Проверить статус установки админки
+ */
+export function getAdminStatus(): Promise<AdminStatus> {
+  return apiRequest('/admin/status');
+}
+
+/**
+ * Создать администратора
+ */
+export function setupAdmin(username: string, password: string): Promise<{ success: boolean }> {
+  return apiRequest('/admin/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+/**
+ * Войти как админ
+ */
+export function adminLogin(username: string, password: string): Promise<AdminLoginResponse> {
+  return apiRequest('/admin/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+/**
+ * Получить настройки (админ)
+ */
+export function getAdminSettings(token: string): Promise<AdminSettings> {
+  return apiRequest('/admin/panel/settings', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * Обновить настройки (админ)
+ */
+export function updateAdminSettings(token: string, settings: Partial<AdminSettings>): Promise<AdminSettings> {
+  return apiRequest('/admin/panel/settings', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(settings),
+  });
+}
+
+/**
+ * Получить статистику (админ)
+ */
+export function getAdminStats(token: string): Promise<AdminStats> {
+  return apiRequest('/admin/panel/stats', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }

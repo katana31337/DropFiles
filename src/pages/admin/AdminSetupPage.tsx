@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Shield, Lock, User, AlertCircle } from 'lucide-react';
+import { getAdminStatus, setupAdmin } from '../../api/client';
 
 export default function AdminSetupPage() {
   const navigate = useNavigate();
@@ -12,8 +13,7 @@ export default function AdminSetupPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetch('/api/admin/status')
-      .then(res => res.json())
+    getAdminStatus()
       .then(data => {
         if (data.isSetupComplete) {
           navigate('/admin/login');
@@ -39,18 +39,7 @@ export default function AdminSetupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/admin/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Setup failed');
-      }
-
+      await setupAdmin(username, password);
       navigate('/admin/login');
     } catch (err: any) {
       setError(err.message);

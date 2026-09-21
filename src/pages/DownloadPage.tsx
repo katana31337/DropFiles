@@ -1,39 +1,73 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Lock, FileIcon, AlertTriangle, Clock, Eye } from 'lucide-react';
-import { useAppStore } from '../store/appStore';
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function formatExpiry(date: Date): string {
-  const now = new Date();
-  const diff = new Date(date).getTime() - now.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  if (days <= 0) return 'Истёк';
-  if (days === 1) return '1 день';
-  if (days < 5) return `${days} дня`;
-  return `${days} дней`;
-}
+import { Download, Lock, FileIcon, AlertTriangle, Clock, Eye, Loader2 } from 'lucide-react';
+import { getFileInfo, verifyFilePassword } from '../api/client';
+import { formatFileSize, formatExpiry } from '../utils/format';
+import type { FileInfo } from '../api/client';
 
 export default function DownloadPage() {
   const { link } = useParams<{ link: string }>();
-  const files = useAppStore((s) => s.files);
-  const incrementDownload = useAppStore((s) => s.incrementDownload);
-
-  const file = files.find((f) => f.shortLink === link);
+  const [file, setFile] = useState<FileInfo | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [passwordError, setPasswordError] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  if (!file) {
+  useEffect(() => {
+    if (link) {
+      loadFileInfo();
+    }
+  }, [link]);
+
+  const loadFileInfo = async () => {
+    try {
+      const data = await getFileInfo(link!);
+      setFile(data);
+      
+      // Если нет пароля — сразу разрешаем скачивание
+      if (!data.hasPassword) {
+        setUnlocked(true);
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async () => {
+    try {
+      const result = await verifyFilePassword(link!, passwordInput);
+      if (result.valid) {
+        setUnlocked(true);
+        setPasswordError(false);
+      } else {
+        setPasswordError(true);
+      }
+    } catch (err) {
+      setError('Ошибка проверки пароля');
+    }
+  };
+
+  const handleDownload = () => {
+    setDownloading(true);
+    // Открываем ссылку для скачивания
+    window.open(`/api/files/${link}/download`, '_blank');
+    setTimeout(() => setDownloading(false), 2000);
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto text-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (error || !file) {
     return (
       <div className="max-w-md mx-auto text-center">
         <motion.div
@@ -43,18 +77,13 @@ export default function DownloadPage() {
         >
           <AlertTriangle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 mb-2">Файл не найден</h2>
-          <p className="text-slate-500">
-            Ссылка недействительна или файл был удалён.
-          </p>
+          <p className="text-slate-500">{error || 'Ссылка недействительна или файл был удалён.'}</p>
         </motion.div>
       </div>
     );
   }
 
-  const isExpired = new Date(file.expiresAt) < new Date();
-  const maxReached = file.status === 'max_downloads_reached';
-
-  if (isExpired || maxReached) {
+  if (file.status === 'expired' || file.status === 'max_downloads_reached') {
     return (
       <div className="max-w-md mx-auto text-center">
         <motion.div
@@ -64,10 +93,10 @@ export default function DownloadPage() {
         >
           <Clock className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-slate-800 mb-2">
-            {isExpired ? 'Срок хранения истёк' : 'Лимит скачиваний исчерпан'}
+            {file.status === 'expired' ? 'Срок хранения истёк' : 'Лимит скачиваний исчерпан'}
           </h2>
           <p className="text-slate-500">
-            {isExpired
+            {file.status === 'expired'
               ? 'Файл был удалён по истечении срока хранения.'
               : `Файл был скачан ${file.downloadCount} раз(а) из ${file.maxDownloads} возможных.`}
           </p>
@@ -75,23 +104,6 @@ export default function DownloadPage() {
       </div>
     );
   }
-
-  const handlePasswordSubmit = () => {
-    if (passwordInput === file.password) {
-      setUnlocked(true);
-      setPasswordError(false);
-    } else {
-      setPasswordError(true);
-    }
-  };
-
-  const handleDownload = () => {
-    setDownloading(true);
-    incrementDownload(file.id);
-    setTimeout(() => {
-      setDownloading(false);
-    }, 2000);
-  };
 
   return (
     <div className="max-w-md mx-auto">
@@ -118,7 +130,7 @@ export default function DownloadPage() {
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">Скачиваний:</span>
             <span className="text-slate-700 font-medium">
-              {file.downloadCount} / {file.maxDownloads === 'unlimited' ? '∞' : file.maxDownloads}
+              {file.downloadCount} / {file.maxDownloads === null ? '∞' : file.maxDownloads}
             </span>
           </div>
           {file.hasPassword && (

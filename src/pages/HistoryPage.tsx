@@ -1,39 +1,29 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileIcon, Clock, Download, Trash2, Link2, Copy, Check, Lock } from 'lucide-react';
-import { useState } from 'react';
-import { useAppStore } from '../store/appStore';
-
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function formatDate(date: Date): string {
-  return new Date(date).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatExpiry(date: Date): string {
-  const now = new Date();
-  const diff = new Date(date).getTime() - now.getTime();
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  if (days <= 0) return 'Истёк';
-  if (days === 1) return '1 день';
-  if (days < 5) return `${days} дня`;
-  return `${days} дней`;
-}
+import { FileIcon, Clock, Download, Trash2, Link2, Copy, Check, Lock, Loader2 } from 'lucide-react';
+import { getFileHistory, deleteFile, FileHistoryItem } from '../api/client';
+import { formatFileSize, formatDate, formatExpiry, isExpired } from '../utils/format';
 
 export default function HistoryPage() {
-  const files = useAppStore((s) => s.files);
-  const removeFile = useAppStore((s) => s.removeFile);
+  const [files, setFiles] = useState<FileHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      const data = await getFileHistory();
+      setFiles(data.files);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleCopy = (link: string, id: string) => {
     const url = `${window.location.origin}/download/${link}`;
@@ -41,6 +31,35 @@ export default function HistoryPage() {
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Удалить файл?')) return;
+    
+    try {
+      await deleteFile(id);
+      setFiles(files.filter(f => f.id !== id));
+    } catch (err: any) {
+      alert(`Ошибка: ${err.message}`);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl mx-auto text-center">
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto text-center">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-600">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   if (files.length === 0) {
     return (
@@ -70,9 +89,9 @@ export default function HistoryPage() {
 
         <div className="space-y-3">
           {files.map((file, index) => {
-            const isExpired = new Date(file.expiresAt) < new Date();
+            const expired = isExpired(file.expiresAt);
             const maxReached = file.status === 'max_downloads_reached';
-            const isActive = !isExpired && !maxReached;
+            const isActive = !expired && !maxReached;
 
             return (
               <motion.div
@@ -106,9 +125,9 @@ export default function HistoryPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <Download className="w-3 h-3" />
-                        {file.downloadCount}/{file.maxDownloads === 'unlimited' ? '∞' : file.maxDownloads}
+                        {file.downloadCount}/{file.maxDownloads === null ? '∞' : file.maxDownloads}
                       </span>
-                      <span>{formatDate(file.uploadDate)}</span>
+                      <span>{formatDate(file.createdAt)}</span>
                     </div>
                   </div>
 
@@ -126,7 +145,7 @@ export default function HistoryPage() {
                       )}
                     </button>
                     <button
-                      onClick={() => removeFile(file.id)}
+                      onClick={() => handleDelete(file.id)}
                       className="p-2 hover:bg-red-50 rounded-lg transition-colors"
                       title="Удалить"
                     >

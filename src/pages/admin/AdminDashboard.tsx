@@ -11,35 +11,13 @@ import {
   AlertCircle,
   Check,
 } from 'lucide-react';
-
-interface SettingsData {
-  files: {
-    maxFileSizeMB: number;
-    retentionDays: number[];
-    maxDownloadsOptions: (number | null)[];
-  };
-  session: {
-    durationDays: number;
-  };
-  rateLimit: {
-    uploadPerMinute: number;
-    apiPerMinute: number;
-  };
-}
-
-interface Stats {
-  activeSessions: number;
-  totalFiles: number;
-  activeFiles: number;
-  totalSizeBytes: number;
-  totalDownloads: number;
-  totalSnippets: number;
-}
+import { getAdminSettings, updateAdminSettings, getAdminStats } from '../../api/client';
+import type { AdminSettings, AdminStats } from '../../api/client';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [settings, setSettings] = useState<SettingsData | null>(null);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [settings, setSettings] = useState<AdminSettings | null>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -60,44 +38,31 @@ export default function AdminDashboard() {
     }
 
     setUsername(savedUsername || 'admin');
-    loadSettings();
-    loadStats();
+    loadSettings(token);
+    loadStats(token);
   }, [navigate]);
 
-  const loadSettings = async () => {
+  const loadSettings = async (token: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('/api/admin/panel/settings', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.status === 401) {
-        localStorage.removeItem('admin_token');
-        navigate('/admin/login');
-        return;
-      }
-
-      const data = await response.json();
+      const data = await getAdminSettings(token);
       setSettings(data);
       setMaxFileSizeMB(data.files.maxFileSizeMB);
       setSessionDurationDays(data.session.durationDays);
       setUploadRateLimit(data.rateLimit.uploadPerMinute);
       setApiRateLimit(data.rateLimit.apiPerMinute);
-    } catch (err) {
-      console.error('Failed to load settings:', err);
+    } catch (err: any) {
+      if (err.message.includes('401')) {
+        localStorage.removeItem('admin_token');
+        navigate('/admin/login');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const loadStats = async () => {
+  const loadStats = async (token: string) => {
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('/api/admin/panel/stats', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      const data = await response.json();
+      const data = await getAdminStats(token);
       setStats(data);
     } catch (err) {
       console.error('Failed to load stats:', err);
@@ -105,29 +70,20 @@ export default function AdminDashboard() {
   };
 
   const handleSave = async () => {
+    const token = localStorage.getItem('admin_token');
+    if (!token) return;
+
     setSaving(true);
     setMessage('');
 
     try {
-      const token = localStorage.getItem('admin_token');
-      const response = await fetch('/api/admin/panel/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          max_file_size_mb: maxFileSizeMB,
-          session_duration_days: sessionDurationDays,
-          upload_rate_limit: uploadRateLimit,
-          api_rate_limit: apiRateLimit,
-        }),
-      });
+      const data = await updateAdminSettings(token, {
+        files: { maxFileSizeMB },
+        session: { durationDays: sessionDurationDays },
+        rateLimit: { uploadPerMinute: uploadRateLimit, apiPerMinute: apiRateLimit },
+      } as any);
 
-      if (!response.ok) {
-        throw new Error('Failed to save settings');
-      }
-
+      setSettings(data);
       setMessage('Settings saved successfully');
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
@@ -185,36 +141,12 @@ export default function AdminDashboard() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-            <StatCard
-              icon={<BarChart3 className="w-5 h-5" />}
-              label="Active Sessions"
-              value={stats.activeSessions}
-            />
-            <StatCard
-              icon={<FileText className="w-5 h-5" />}
-              label="Total Files"
-              value={stats.totalFiles}
-            />
-            <StatCard
-              icon={<FileText className="w-5 h-5" />}
-              label="Active Files"
-              value={stats.activeFiles}
-            />
-            <StatCard
-              icon={<FileText className="w-5 h-5" />}
-              label="Total Size"
-              value={formatBytes(stats.totalSizeBytes)}
-            />
-            <StatCard
-              icon={<BarChart3 className="w-5 h-5" />}
-              label="Downloads"
-              value={stats.totalDownloads}
-            />
-            <StatCard
-              icon={<FileText className="w-5 h-5" />}
-              label="Text Snippets"
-              value={stats.totalSnippets}
-            />
+            <StatCard icon={<BarChart3 className="w-5 h-5" />} label="Active Sessions" value={stats.activeSessions} />
+            <StatCard icon={<FileText className="w-5 h-5" />} label="Total Files" value={stats.totalFiles} />
+            <StatCard icon={<FileText className="w-5 h-5" />} label="Active Files" value={stats.activeFiles} />
+            <StatCard icon={<FileText className="w-5 h-5" />} label="Total Size" value={formatBytes(stats.totalSizeBytes)} />
+            <StatCard icon={<BarChart3 className="w-5 h-5" />} label="Downloads" value={stats.totalDownloads} />
+            <StatCard icon={<FileText className="w-5 h-5" />} label="Text Snippets" value={stats.totalSnippets} />
           </div>
         )}
 
@@ -227,9 +159,7 @@ export default function AdminDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-slate-700 text-sm mb-2">
-                Max File Size (MB)
-              </label>
+              <label className="block text-slate-700 text-sm mb-2">Max File Size (MB)</label>
               <input
                 type="number"
                 value={maxFileSizeMB}
@@ -241,9 +171,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="block text-slate-700 text-sm mb-2">
-                Session Duration (days)
-              </label>
+              <label className="block text-slate-700 text-sm mb-2">Session Duration (days)</label>
               <input
                 type="number"
                 value={sessionDurationDays}
@@ -255,9 +183,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="block text-slate-700 text-sm mb-2">
-                Upload Rate Limit (per minute)
-              </label>
+              <label className="block text-slate-700 text-sm mb-2">Upload Rate Limit (per minute)</label>
               <input
                 type="number"
                 value={uploadRateLimit}
@@ -269,9 +195,7 @@ export default function AdminDashboard() {
             </div>
 
             <div>
-              <label className="block text-slate-700 text-sm mb-2">
-                API Rate Limit (per minute)
-              </label>
+              <label className="block text-slate-700 text-sm mb-2">API Rate Limit (per minute)</label>
               <input
                 type="number"
                 value={apiRateLimit}
@@ -284,18 +208,10 @@ export default function AdminDashboard() {
           </div>
 
           {message && (
-            <div
-              className={`mt-4 flex items-center gap-2 rounded-lg p-3 border ${
-                message.includes('success')
-                  ? 'text-green-700 bg-green-50 border-green-200'
-                  : 'text-red-700 bg-red-50 border-red-200'
-              }`}
-            >
-              {message.includes('success') ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                <AlertCircle className="w-4 h-4" />
-              )}
+            <div className={`mt-4 flex items-center gap-2 rounded-lg p-3 border ${
+              message.includes('success') ? 'text-green-700 bg-green-50 border-green-200' : 'text-red-700 bg-red-50 border-red-200'
+            }`}>
+              {message.includes('success') ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
               <span className="text-sm">{message}</span>
             </div>
           )}
@@ -314,15 +230,7 @@ export default function AdminDashboard() {
   );
 }
 
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number;
-}) {
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
   return (
     <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
       <div className="flex items-center gap-2 text-indigo-600 mb-2">{icon}</div>

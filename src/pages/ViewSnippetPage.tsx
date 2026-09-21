@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FileText, Lock, AlertTriangle, Clock, Eye, Copy, Check } from 'lucide-react';
-
-interface SnippetData {
-  content: string;
-  title: string | null;
-  language: string | null;
-  hasPassword: boolean;
-  maxViews: number | null;
-  viewCount: number;
-  expiresAt: string;
-}
+import { FileText, Lock, AlertTriangle, Clock, Eye, Copy, Check, Loader2 } from 'lucide-react';
+import { getSnippet, verifySnippetPassword, incrementSnippetView } from '../api/client';
+import { formatExpiry } from '../utils/format';
+import type { SnippetInfo } from '../api/client';
 
 export default function ViewSnippetPage() {
   const { link } = useParams<{ link: string }>();
-  const [snippet, setSnippet] = useState<SnippetData | null>(null);
+  const [snippet, setSnippet] = useState<SnippetInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
@@ -31,19 +24,12 @@ export default function ViewSnippetPage() {
 
   const loadSnippet = async () => {
     try {
-      const response = await fetch(`/api/snippets/${link}`);
-      
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({ error: 'Not found' }));
-        throw new Error(data.error || 'Сниппет не найден');
-      }
-
-      const data = await response.json();
+      const data = await getSnippet(link!);
       setSnippet(data);
 
       if (!data.hasPassword) {
         setUnlocked(true);
-        fetch(`/api/snippets/${link}/view`, { method: 'POST' });
+        incrementSnippetView(link!).catch(() => {});
       }
     } catch (err: any) {
       setError(err.message);
@@ -54,18 +40,11 @@ export default function ViewSnippetPage() {
 
   const handlePasswordSubmit = async () => {
     try {
-      const response = await fetch(`/api/snippets/${link}/verify-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: passwordInput }),
-      });
-
-      const data = await response.json();
-
-      if (data.valid) {
+      const result = await verifySnippetPassword(link!, passwordInput);
+      if (result.valid) {
         setUnlocked(true);
         setPasswordError(false);
-        fetch(`/api/snippets/${link}/view`, { method: 'POST' });
+        incrementSnippetView(link!).catch(() => {});
       } else {
         setPasswordError(true);
       }
@@ -82,21 +61,10 @@ export default function ViewSnippetPage() {
     }
   };
 
-  const formatExpiry = (date: string) => {
-    const now = new Date();
-    const expiry = new Date(date);
-    const diff = expiry.getTime() - now.getTime();
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    if (days <= 0) return 'Истёк';
-    if (days === 1) return '1 день';
-    if (days < 5) return `${days} дня`;
-    return `${days} дней`;
-  };
-
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto text-center">
-        <div className="text-slate-500">Загрузка...</div>
+        <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto" />
       </div>
     );
   }
@@ -208,7 +176,6 @@ export default function ViewSnippetPage() {
             </button>
           </div>
         ) : (
-          /* Content */
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 overflow-x-auto">
             <pre className="text-slate-700 text-sm font-mono whitespace-pre-wrap">
               {snippet.content}

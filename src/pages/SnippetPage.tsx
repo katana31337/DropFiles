@@ -9,17 +9,9 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
+import { createSnippet } from '../api/client';
 import { RetentionDays, MaxDownloads } from '../types';
-
-function retentionLabel(days: RetentionDays): string {
-  if (days === 1) return '1 день';
-  if (days < 5) return `${days} дня`;
-  return `${days} дней`;
-}
-
-function viewsLabel(opt: MaxDownloads): string {
-  return opt === 'unlimited' ? 'Без ограничений' : `${opt}`;
-}
+import { retentionLabel, downloadLabel } from '../utils/format';
 
 export default function SnippetPage() {
   const [content, setContent] = useState('');
@@ -52,25 +44,14 @@ export default function SnippetPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/snippets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          content,
-          title: title || undefined,
-          language: language || undefined,
-          retentionDays,
-          maxViews,
-          password: usePassword ? password : undefined,
-        }),
+      const data = await createSnippet({
+        content,
+        title: title || undefined,
+        language: language || undefined,
+        retentionDays,
+        maxViews,
+        password: usePassword ? password : undefined,
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Не удалось создать сниппет');
-      }
 
       setCreatedLink(data.shortLink);
       setContent('');
@@ -253,7 +234,7 @@ export default function SnippetPage() {
                 >
                   {viewOptions.map((opt) => (
                     <option key={String(opt)} value={String(opt)}>
-                      {viewsLabel(opt)}
+                      {downloadLabel(opt)}
                     </option>
                   ))}
                 </select>

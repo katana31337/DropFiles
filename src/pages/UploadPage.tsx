@@ -16,28 +16,11 @@ import {
 } from 'lucide-react';
 import { uploadFile } from '../api/client';
 import { RetentionDays, MaxDownloads } from '../types';
+import { retentionLabel, downloadLabel, formatFileSize } from '../utils/format';
 
-function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-}
-
-function retentionLabel(days: RetentionDays): string {
-  if (days === 1) return '1 день';
-  if (days < 5) return `${days} дня`;
-  return `${days} дней`;
-}
-
-function downloadLabel(opt: MaxDownloads): string {
-  return opt === 'unlimited' ? 'Без ограничений' : `${opt}`;
-}
+const MAX_FILE_SIZE_MB = 100;
 
 export default function UploadPage() {
-  const maxFileSizeMB = 100;
-
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [retentionDays, setRetentionDays] = useState<RetentionDays>(7);
   const [maxDownloads, setMaxDownloads] = useState<MaxDownloads>('unlimited');
@@ -57,20 +40,20 @@ export default function UploadPage() {
       setError(null);
       const file = acceptedFiles[0];
       if (file) {
-        if (file.size > maxFileSizeMB * 1024 * 1024) {
-          setError(`Файл слишком большой. Максимум: ${maxFileSizeMB} MB`);
+        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+          setError(`Файл слишком большой. Максимум: ${MAX_FILE_SIZE_MB} MB`);
           return;
         }
         setSelectedFile(file);
       }
     },
-    [maxFileSizeMB]
+    []
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: maxFileSizeMB * 1024 * 1024,
+    maxSize: MAX_FILE_SIZE_MB * 1024 * 1024,
   });
 
   const handleUpload = async () => {
@@ -204,7 +187,7 @@ export default function UploadPage() {
                   <p className="text-slate-600 mb-2">
                     Перетащите файл сюда или нажмите для выбора
                   </p>
-                  <p className="text-slate-400 text-sm">Максимум {maxFileSizeMB} MB</p>
+                  <p className="text-slate-400 text-sm">Максимум {MAX_FILE_SIZE_MB} MB</p>
                 </>
               )}
             </div>
@@ -352,3 +335,5 @@ export default function UploadPage() {
     </div>
   );
 }
+
+

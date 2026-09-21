@@ -1,6 +1,4 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
-import { useAppStore } from './store/appStore';
 import Layout from './components/Layout';
 import UploadPage from './pages/UploadPage';
 import DownloadPage from './pages/DownloadPage';
@@ -12,12 +10,6 @@ import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 
 function App() {
-  const initSession = useAppStore((s) => s.initSession);
-
-  useEffect(() => {
-    initSession();
-  }, [initSession]);
-
   // Секретный путь админки (должен совпадать с ADMIN_SECRET_PATH в .env)
   const adminPath = import.meta.env.VITE_ADMIN_SECRET_PATH || '/secret-admin-panel';
 

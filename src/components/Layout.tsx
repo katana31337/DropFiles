@@ -1,11 +1,9 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Upload, History, FileUp, FileText } from 'lucide-react';
-import { useAppStore } from '../store/appStore';
 
 export default function Layout() {
   const location = useLocation();
-  const session = useAppStore((s) => s.session);
 
   const navItems = [
     { path: '/', label: 'Загрузить', icon: Upload },
@@ -48,14 +46,6 @@ export default function Layout() {
               );
             })}
           </nav>
-
-          {/* Session info */}
-          {session && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-slate-400">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>Сессия активна</span>
-            </div>
-          )}
         </div>
       </header>
 
@@ -67,7 +57,7 @@ export default function Layout() {
       {/* Footer */}
       <footer className="border-t border-slate-200 mt-auto">
         <div className="max-w-6xl mx-auto px-4 py-4 text-center text-slate-400 text-sm">
-          FileDrop — Анонимный обмен файлами • Прототип
+          FileDrop — Анонимный обмен файлами
         </div>
       </footer>
     </div>
