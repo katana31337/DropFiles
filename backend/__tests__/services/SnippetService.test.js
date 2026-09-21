@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 // Мокаем зависимости
-jest.unstable_mockModule('../repositories/SnippetRepository.js', () => ({
+jest.unstable_mockModule('../../src/repositories/SnippetRepository.js', () => ({
   snippetRepository: {
     create: jest.fn(),
     findByShortLink: jest.fn(),
@@ -11,21 +11,21 @@ jest.unstable_mockModule('../repositories/SnippetRepository.js', () => ({
   },
 }));
 
-jest.unstable_mockModule('../utils/shortLink.js', () => ({
+jest.unstable_mockModule('../../src/utils/shortLink.js', () => ({
   generateShortLink: jest.fn(() => 'snip1234'),
 }));
 
-jest.unstable_mockModule('../utils/hash.js', () => ({
+jest.unstable_mockModule('../../src/utils/hash.js', () => ({
   hashPassword: jest.fn((pwd) => Promise.resolve(`hashed_${pwd}`)),
   verifyPassword: jest.fn((pwd, hash) => Promise.resolve(hash === `hashed_${pwd}`)),
 }));
 
-const { snippetRepository } = await import('../repositories/SnippetRepository.js');
-const { generateShortLink } = await import('../utils/shortLink.js');
-const { hashPassword } = await import('../utils/hash.js');
-const { SnippetService } = await import('../services/SnippetService.js');
+const { snippetRepository } = await import('../../src/repositories/SnippetRepository.js');
+const { generateShortLink } = await import('../../src/utils/shortLink.js');
+const { hashPassword } = await import('../../src/utils/hash.js');
+const { SnippetService } = await import('../../src/services/SnippetService.js');
 
-describe('SnippetService', () => {
+describe('SnippetService - сервис работы со сниппетами', () => {
   let snippetService;
 
   beforeEach(() => {
@@ -33,11 +33,11 @@ describe('SnippetService', () => {
     snippetService = new SnippetService();
   });
 
-  describe('create', () => {
-    it('should create snippet successfully', async () => {
-      const content = 'console.log("hello");';
+  describe('create - создание сниппета', () => {
+    it('должен успешно создавать сниппет', async () => {
+      const content = 'console.log("привет");';
       const options = {
-        title: 'Test Snippet',
+        title: 'Тестовый сниппет',
         language: 'javascript',
         retentionDays: '7',
         maxViews: 'unlimited',
@@ -47,7 +47,7 @@ describe('SnippetService', () => {
       snippetRepository.create.mockResolvedValue({
         id: 'snippet-1',
         short_link: 'snip1234',
-        title: 'Test Snippet',
+        title: 'Тестовый сниппет',
         language: 'javascript',
         expires_at: new Date(),
       });
@@ -57,8 +57,8 @@ describe('SnippetService', () => {
       expect(snippetRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: 'session-1',
-          content: 'console.log("hello");',
-          title: 'Test Snippet',
+          content: 'console.log("привет");',
+          title: 'Тестовый сниппет',
           language: 'javascript',
           shortLink: 'snip1234',
         })
@@ -66,8 +66,8 @@ describe('SnippetService', () => {
       expect(result.short_link).toBe('snip1234');
     });
 
-    it('should hash password when provided', async () => {
-      const content = 'secret code';
+    it('должен хэшировать пароль если он предоставлен', async () => {
+      const content = 'секретный код';
       const options = {
         retentionDays: '7',
         maxViews: 'unlimited',
@@ -87,8 +87,8 @@ describe('SnippetService', () => {
       );
     });
 
-    it('should set maxViews to null for unlimited', async () => {
-      const content = 'test';
+    it('должен устанавливать maxViews в null для unlimited', async () => {
+      const content = 'тест';
       const options = {
         retentionDays: '7',
         maxViews: 'unlimited',
@@ -106,8 +106,8 @@ describe('SnippetService', () => {
       );
     });
 
-    it('should set maxViews to number when specified', async () => {
-      const content = 'test';
+    it('должен устанавливать maxViews в число когда указано', async () => {
+      const content = 'тест';
       const options = {
         retentionDays: '7',
         maxViews: '5',
@@ -126,11 +126,11 @@ describe('SnippetService', () => {
     });
   });
 
-  describe('getSnippet', () => {
-    it('should return snippet data', async () => {
+  describe('getSnippet - получение сниппета', () => {
+    it('должен возвращать данные сниппета', async () => {
       const mockSnippet = {
-        content: 'console.log("test");',
-        title: 'Test',
+        content: 'console.log("тест");',
+        title: 'Тест',
         language: 'javascript',
         password_hash: null,
         max_views: null,
@@ -142,22 +142,22 @@ describe('SnippetService', () => {
 
       const result = await snippetService.getSnippet('snip1234');
 
-      expect(result.content).toBe('console.log("test");');
-      expect(result.title).toBe('Test');
+      expect(result.content).toBe('console.log("тест");');
+      expect(result.title).toBe('Тест');
       expect(result.hasPassword).toBe(false);
       expect(result.viewCount).toBe(10);
     });
 
-    it('should throw error if snippet not found', async () => {
+    it('должен выбрасывать ошибку если сниппет не найден', async () => {
       snippetRepository.findByShortLink.mockResolvedValue(null);
 
       await expect(snippetService.getSnippet('nonexistent')).rejects.toThrow('Snippet not found');
     });
 
-    it('should throw error if snippet expired', async () => {
+    it('должен выбрасывать ошибку если срок действия сниппета истёк', async () => {
       const mockSnippet = {
-        content: 'test',
-        title: 'Test',
+        content: 'тест',
+        title: 'Тест',
         language: null,
         password_hash: null,
         max_views: null,
@@ -170,10 +170,10 @@ describe('SnippetService', () => {
       await expect(snippetService.getSnippet('snip1234')).rejects.toThrow('Snippet expired');
     });
 
-    it('should throw error if view limit reached', async () => {
+    it('должен выбрасывать ошибку если достигнут лимит просмотров', async () => {
       const mockSnippet = {
-        content: 'test',
-        title: 'Test',
+        content: 'тест',
+        title: 'Тест',
         language: null,
         password_hash: null,
         max_views: 5,
@@ -187,8 +187,8 @@ describe('SnippetService', () => {
     });
   });
 
-  describe('verifyPassword', () => {
-    it('should return true for snippet without password', async () => {
+  describe('verifyPassword - проверка пароля', () => {
+    it('должен возвращать true для сниппета без пароля', async () => {
       snippetRepository.findByShortLink.mockResolvedValue({
         password_hash: null,
       });
@@ -197,7 +197,7 @@ describe('SnippetService', () => {
       expect(result).toBe(true);
     });
 
-    it('should verify correct password', async () => {
+    it('должен проверять корректный пароль', async () => {
       snippetRepository.findByShortLink.mockResolvedValue({
         password_hash: 'hashed_secret123',
       });
@@ -206,7 +206,7 @@ describe('SnippetService', () => {
       expect(result).toBe(true);
     });
 
-    it('should reject incorrect password', async () => {
+    it('должен отклонять некорректный пароль', async () => {
       snippetRepository.findByShortLink.mockResolvedValue({
         password_hash: 'hashed_secret123',
       });
@@ -216,21 +216,21 @@ describe('SnippetService', () => {
     });
   });
 
-  describe('incrementView', () => {
-    it('should increment view count', async () => {
+  describe('incrementView - увеличение счётчика просмотров', () => {
+    it('должен увеличивать счётчик просмотров', async () => {
       await snippetService.incrementView('snip1234');
 
       expect(snippetRepository.incrementViewCount).toHaveBeenCalledWith('snip1234');
     });
   });
 
-  describe('getSessionHistory', () => {
-    it('should return formatted history', async () => {
+  describe('getSessionHistory - получение истории сессии', () => {
+    it('должен возвращать отформатированную историю', async () => {
       const mockSnippets = [
         {
           id: '1',
           short_link: 'snip1',
-          title: 'Snippet 1',
+          title: 'Сниппет 1',
           language: 'javascript',
           max_views: null,
           view_count: 5,
@@ -242,7 +242,7 @@ describe('SnippetService', () => {
         {
           id: '2',
           short_link: 'snip2',
-          title: 'Snippet 2',
+          title: 'Сниппет 2',
           language: 'python',
           max_views: 10,
           view_count: 10,
@@ -264,12 +264,12 @@ describe('SnippetService', () => {
       expect(history[1].hasPassword).toBe(true);
     });
 
-    it('should mark expired snippets', async () => {
+    it('должен помечать истёкшие сниппеты', async () => {
       const mockSnippets = [
         {
           id: '1',
           short_link: 'snip1',
-          title: 'Expired',
+          title: 'Истёкший',
           language: null,
           max_views: null,
           view_count: 0,

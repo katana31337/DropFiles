@@ -1,7 +1,7 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
 // Мокаем зависимости
-jest.unstable_mockModule('../repositories/FileRepository.js', () => ({
+jest.unstable_mockModule('../../src/repositories/FileRepository.js', () => ({
   fileRepository: {
     create: jest.fn(),
     findByShortLink: jest.fn(),
@@ -14,7 +14,7 @@ jest.unstable_mockModule('../repositories/FileRepository.js', () => ({
   },
 }));
 
-jest.unstable_mockModule('../services/storage/index.js', () => ({
+jest.unstable_mockModule('../../src/services/storage/index.js', () => ({
   getStorage: () => ({
     save: jest.fn(),
     get: jest.fn(),
@@ -23,12 +23,12 @@ jest.unstable_mockModule('../services/storage/index.js', () => ({
   }),
 }));
 
-jest.unstable_mockModule('../utils/shortLink.js', () => ({
+jest.unstable_mockModule('../../src/utils/shortLink.js', () => ({
   generateShortLink: jest.fn(() => 'test1234'),
   generateStorageFilename: jest.fn((name) => `1234567890_abc_${name}`),
 }));
 
-jest.unstable_mockModule('../utils/hash.js', () => ({
+jest.unstable_mockModule('../../src/utils/hash.js', () => ({
   hashPassword: jest.fn((pwd) => Promise.resolve(`hashed_${pwd}`)),
   verifyPassword: jest.fn((pwd, hash) => Promise.resolve(hash === `hashed_${pwd}`)),
 }));
@@ -42,13 +42,13 @@ jest.unstable_mockModule('pg', () => ({
   },
 }));
 
-const { fileRepository } = await import('../repositories/FileRepository.js');
-const { getStorage } = await import('../services/storage/index.js');
-const { generateShortLink } = await import('../utils/shortLink.js');
-const { hashPassword } = await import('../utils/hash.js');
-const { FileService } = await import('../services/FileService.js');
+const { fileRepository } = await import('../../src/repositories/FileRepository.js');
+const { getStorage } = await import('../../src/services/storage/index.js');
+const { generateShortLink } = await import('../../src/utils/shortLink.js');
+const { hashPassword } = await import('../../src/utils/hash.js');
+const { FileService } = await import('../../src/services/FileService.js');
 
-describe('FileService', () => {
+describe('FileService - сервис работы с файлами', () => {
   let fileService;
   let mockStorage;
 
@@ -58,8 +58,8 @@ describe('FileService', () => {
     fileService = new FileService();
   });
 
-  describe('upload', () => {
-    it('should upload file successfully', async () => {
+  describe('upload - загрузка файла', () => {
+    it('должен успешно загружать файл', async () => {
       const file = {
         buffer: Buffer.from('test content'),
         originalname: 'test.txt',
@@ -95,7 +95,7 @@ describe('FileService', () => {
       expect(result.short_link).toBe('test1234');
     });
 
-    it('should hash password when provided', async () => {
+    it('должен хэшировать пароль если он предоставлен', async () => {
       const file = {
         buffer: Buffer.from('test'),
         originalname: 'test.txt',
@@ -123,7 +123,7 @@ describe('FileService', () => {
       );
     });
 
-    it('should remove file from storage if DB save fails', async () => {
+    it('должен удалять файл из хранилища если сохранение в БД не удалось', async () => {
       const file = {
         buffer: Buffer.from('test'),
         originalname: 'test.txt',
@@ -143,8 +143,8 @@ describe('FileService', () => {
     });
   });
 
-  describe('getFileInfo', () => {
-    it('should return file info', async () => {
+  describe('getFileInfo - получение информации о файле', () => {
+    it('должен возвращать информацию о файле', async () => {
       const mockFile = {
         original_name: 'test.txt',
         file_size: 1024,
@@ -167,13 +167,13 @@ describe('FileService', () => {
       expect(info.status).toBe('active');
     });
 
-    it('should throw error if file not found', async () => {
+    it('должен выбрасывать ошибку если файл не найден', async () => {
       fileRepository.findByShortLink.mockResolvedValue(null);
 
       await expect(fileService.getFileInfo('nonexistent')).rejects.toThrow('File not found');
     });
 
-    it('should mark file as expired', async () => {
+    it('должен помечать файл как истёкший', async () => {
       const mockFile = {
         original_name: 'test.txt',
         file_size: 1024,
@@ -192,7 +192,7 @@ describe('FileService', () => {
       expect(info.status).toBe('expired');
     });
 
-    it('should mark file as max_downloads_reached', async () => {
+    it('должен помечать файл как достигший лимита скачиваний', async () => {
       const mockFile = {
         original_name: 'test.txt',
         file_size: 1024,
@@ -212,8 +212,8 @@ describe('FileService', () => {
     });
   });
 
-  describe('verifyPassword', () => {
-    it('should return true for file without password', async () => {
+  describe('verifyPassword - проверка пароля', () => {
+    it('должен возвращать true для файла без пароля', async () => {
       fileRepository.findByShortLink.mockResolvedValue({
         password_hash: null,
       });
@@ -222,7 +222,7 @@ describe('FileService', () => {
       expect(result).toBe(true);
     });
 
-    it('should verify correct password', async () => {
+    it('должен проверять корректный пароль', async () => {
       fileRepository.findByShortLink.mockResolvedValue({
         password_hash: 'hashed_secret123',
       });
@@ -231,7 +231,7 @@ describe('FileService', () => {
       expect(result).toBe(true);
     });
 
-    it('should reject incorrect password', async () => {
+    it('должен отклонять некорректный пароль', async () => {
       fileRepository.findByShortLink.mockResolvedValue({
         password_hash: 'hashed_secret123',
       });
@@ -241,15 +241,15 @@ describe('FileService', () => {
     });
   });
 
-  describe('generateUniqueShortLink', () => {
-    it('should generate unique link', async () => {
+  describe('generateUniqueShortLink - генерация уникальной короткой ссылки', () => {
+    it('должен генерировать уникальную ссылку', async () => {
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
 
       const link = await fileService.generateUniqueShortLink();
       expect(link).toBe('test1234');
     });
 
-    it('should retry if link is not unique', async () => {
+    it('должен повторять попытку если ссылка не уникальна', async () => {
       fileRepository.isShortLinkUnique
         .mockResolvedValueOnce(false)
         .mockResolvedValueOnce(false)
@@ -259,7 +259,7 @@ describe('FileService', () => {
       expect(fileRepository.isShortLinkUnique).toHaveBeenCalledTimes(3);
     });
 
-    it('should throw error after max retries', async () => {
+    it('должен выбрасывать ошибку после максимального количества попыток', async () => {
       fileRepository.isShortLinkUnique.mockResolvedValue(false);
 
       await expect(fileService.generateUniqueShortLink(3)).rejects.toThrow(
