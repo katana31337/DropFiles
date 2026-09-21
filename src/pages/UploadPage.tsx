@@ -12,6 +12,7 @@ import {
   Check,
   FileIcon,
   AlertCircle,
+  Loader2,
 } from 'lucide-react';
 import { useAppStore } from '../store/appStore';
 import { RetentionDays, MaxDownloads } from '../types';
@@ -37,6 +38,8 @@ export default function UploadPage() {
   const [uploadedLink, setUploadedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const retentionOptions: RetentionDays[] = [1, 3, 5, 7, 20, 30];
   const downloadOptions: MaxDownloads[] = [1, 2, 5, 7, 'unlimited'];
@@ -63,23 +66,65 @@ export default function UploadPage() {
     maxSize: maxFileSizeMB * 1024 * 1024,
   });
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (!selectedFile) return;
 
-    const result = addFile({
-      name: selectedFile.name,
-      size: selectedFile.size,
-      type: selectedFile.type,
-      retentionDays,
-      maxDownloads,
-      password: usePassword ? password : undefined,
-    });
+    setIsUploading(true);
+    setUploadProgress(0);
+    setError(null);
 
-    setUploadedLink(result.shortLink);
-    setSelectedFile(null);
-    setPassword('');
-    setUsePassword(false);
-    updateSessionActivity();
+    try {
+      // Имитация прогресса (в реальности — XMLHttpRequest с onprogress)
+      const progressInterval = setInterval(() => {
+        setUploadProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
+      // TODO: Заменить на реальный API вызов
+      // const formData = new FormData();
+      // formData.append('file', selectedFile);
+      // formData.append('retentionDays', retentionDays.toString());
+      // formData.append('maxDownloads', maxDownloads.toString());
+      // if (usePassword && password) formData.append('password', password);
+      //
+      // const response = await fetch('/api/files/upload', {
+      //   method: 'POST',
+      //   body: formData,
+      //   credentials: 'include',
+      // });
+      // const data = await response.json();
+
+      // Симуляция загрузки
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      const result = addFile({
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+        retentionDays,
+        maxDownloads,
+        password: usePassword ? password : undefined,
+      });
+
+      setUploadedLink(result.shortLink);
+      setSelectedFile(null);
+      setPassword('');
+      setUsePassword(false);
+      updateSessionActivity();
+    } catch (err) {
+      setError('Ошибка при загрузке файла. Попробуйте ещё раз.');
+      console.error('Upload error:', err);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
   const handleCopy = () => {
@@ -290,17 +335,38 @@ export default function UploadPage() {
 
             {/* Upload Button */}
             <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              whileHover={!isUploading ? { scale: 1.02 } : {}}
+              whileTap={!isUploading ? { scale: 0.98 } : {}}
               onClick={handleUpload}
-              disabled={!selectedFile}
-              className={`w-full py-4 rounded-xl font-medium text-lg transition-all ${
-                selectedFile
+              disabled={!selectedFile || isUploading}
+              className={`w-full py-4 rounded-xl font-medium text-lg transition-all relative overflow-hidden ${
+                selectedFile && !isUploading
                   ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-500/25'
                   : 'bg-white/10 text-white/30 cursor-not-allowed'
               }`}
             >
-              {selectedFile ? 'Загрузить файл' : 'Выберите файл'}
+              {/* Progress bar background */}
+              {isUploading && (
+                <motion.div
+                  className="absolute inset-0 bg-white/10"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${uploadProgress}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
+
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Загрузка... {Math.round(uploadProgress)}%
+                  </>
+                ) : selectedFile ? (
+                  'Загрузить файл'
+                ) : (
+                  'Выберите файл'
+                )}
+              </span>
             </motion.button>
           </motion.div>
         )}
