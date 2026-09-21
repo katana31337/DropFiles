@@ -225,7 +225,7 @@ app.get('/api/health', async (req, res) => {
 ```
 
 ### 12. Docker контейнеризация
-**Решение:** Создать `docker-compose.yml`:
+**Решение:** Создать `docker-compose.yml` (использовать `docker compose` для запуска):
 ```yaml
 version: '3.8'
 services:

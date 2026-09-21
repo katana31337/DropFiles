@@ -44,8 +44,8 @@ if ! command -v docker &> /dev/null; then
     error "Docker не установлен. Установите Docker и попробуйте снова."
 fi
 
-if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-    error "Docker Compose не установлен. Установите Docker Compose и попробуйте снова."
+if ! docker compose version &> /dev/null; then
+    error "Docker Compose не установлен. Установите Docker Compose v2 (плагин для Docker) и попробуйте снова."
 fi
 
 success "Docker и Docker Compose найдены"
@@ -627,7 +627,7 @@ start_docker=${start_docker:-Y}
 
 if [[ $start_docker =~ ^[Yy]$ ]]; then
     info "Запуск Docker контейнеров..."
-    docker-compose up -d --build
+    docker compose up -d --build
     success "Контейнеры запущены"
 fi
 
@@ -643,14 +643,14 @@ if [ "$CERT_TYPE" = "letsencrypt" ]; then
         info "Пропускаем получение, используем существующий сертификат"
     else
         info "Получение Let's Encrypt сертификата..."
-        docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot \
+        docker compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot \
             --email $EMAIL --agree-tos --no-eff-email -d $DOMAIN
         
         success "Сертификат получен"
     fi
     
     info "Перезапуск nginx..."
-    docker-compose restart nginx
+    docker compose restart nginx
 fi
 
 # ============================================
@@ -684,10 +684,10 @@ echo -e "   PostgreSQL: $DATASTORE_PATH/postgres"
 echo -e "   Certificates: $CERT_PATH"
 echo ""
 echo -e "${BLUE}📋 Useful Commands:${NC}"
-echo -e "   docker-compose ps          # Статус контейнеров"
-echo -e "   docker-compose logs -f     # Логи"
-echo -e "   docker-compose restart     # Перезапуск"
-echo -e "   docker-compose down        # Остановка"
+echo -e "   docker compose ps          # Статус контейнеров"
+echo -e "   docker compose logs -f     # Логи"
+echo -e "   docker compose restart     # Перезапуск"
+echo -e "   docker compose down        # Остановка"
 echo ""
 if [ "$CERT_TYPE" = "self-signed" ]; then
     echo -e "${YELLOW}⚠️  Важно:${NC}"

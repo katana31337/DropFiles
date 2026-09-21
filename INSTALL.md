@@ -115,27 +115,27 @@ https://your-domain.com/admin-xxxxx
 
 ```bash
 # Статус контейнеров
-docker-compose ps
+docker compose ps
 
 # Просмотр логов
-docker-compose logs -f
+docker compose logs -f
 
 # Логи конкретного сервиса
-docker-compose logs -f backend
-docker-compose logs -f nginx
-docker-compose logs -f postgres
+docker compose logs -f backend
+docker compose logs -f nginx
+docker compose logs -f postgres
 
 # Перезапуск всех сервисов
-docker-compose restart
+docker compose restart
 
 # Перезапуск конкретного сервиса
-docker-compose restart backend
+docker compose restart backend
 
 # Остановка всех сервисов
-docker-compose down
+docker compose down
 
 # Остановка с удалением данных (ОПАСНО!)
-docker-compose down -v
+docker compose down -v
 sudo rm -rf /datastore/*
 ```
 
@@ -169,7 +169,7 @@ sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -subj "/C=US/ST=State/L=City/O=Organization/CN=yourdomain"
 
 # Перезапустить nginx после обновления
-docker-compose restart nginx
+docker compose restart nginx
 ```
 
 ### Резервное копирование
@@ -188,10 +188,10 @@ sudo tar -xzf filedrop-backup-YYYYMMDD.tar.gz -C /
 
 ```bash
 # Создать дамп
-docker-compose exec postgres pg_dump -U filedrop filedrop > backup.sql
+docker compose exec postgres pg_dump -U filedrop filedrop > backup.sql
 
 # Восстановить
-docker-compose exec -T postgres psql -U filedrop filedrop < backup.sql
+docker compose exec -T postgres psql -U filedrop filedrop < backup.sql
 ```
 
 #### Только файлы
@@ -210,29 +210,29 @@ sudo tar -xzf files-backup-YYYYMMDD.tar.gz -C /
 
 ```bash
 # Остановить сервисы
-docker-compose down
+docker compose down
 
 # Обновить код
 git pull
 
 # Пересобрать и запустить
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### Обновление PostgreSQL
 
 ```bash
 # Создать дамп базы
-docker-compose exec postgres pg_dump -U filedrop filedrop > backup.sql
+docker compose exec postgres pg_dump -U filedrop filedrop > backup.sql
 
 # Обновить образ
-docker-compose pull postgres
+docker compose pull postgres
 
 # Запустить с новым образом
-docker-compose up -d postgres
+docker compose up -d postgres
 
 # Проверить работу
-docker-compose logs postgres
+docker compose logs postgres
 ```
 
 ## Решение проблем
@@ -241,39 +241,39 @@ docker-compose logs postgres
 
 ```bash
 # Проверить логи
-docker-compose logs <service-name>
+docker compose logs <service-name>
 
 # Перезапустить контейнер
-docker-compose restart <service-name>
+docker compose restart <service-name>
 
 # Пересобрать контейнер
-docker-compose up -d --build <service-name>
+docker compose up -d --build <service-name>
 ```
 
 ### Ошибка подключения к БД
 
 ```bash
 # Проверить статус PostgreSQL
-docker-compose ps postgres
+docker compose ps postgres
 
 # Проверить логи PostgreSQL
-docker-compose logs postgres
+docker compose logs postgres
 
 # Перезапустить PostgreSQL
-docker-compose restart postgres
+docker compose restart postgres
 ```
 
 ### Ошибка 502 Bad Gateway
 
 ```bash
 # Проверить статус backend
-docker-compose ps backend
+docker compose ps backend
 
 # Проверить логи backend
-docker-compose logs backend
+docker compose logs backend
 
 # Перезапустить backend
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### SSL сертификат не работает
@@ -281,22 +281,22 @@ docker-compose restart backend
 #### Self-signed
 1. Убедитесь что добавили запись в `/etc/hosts`
 2. Примите самоподписанный сертификат в браузере
-3. Перезапустите nginx: `docker-compose restart nginx`
+3. Перезапустите nginx: `docker compose restart nginx`
 
 #### Let's Encrypt
 ```bash
 # Проверить статус certbot
-docker-compose logs certbot
+docker compose logs certbot
 
 # Вручную получить сертификат
-docker-compose run --rm certbot certonly --webroot \
+docker compose run --rm certbot certonly --webroot \
   --webroot-path /var/www/certbot \
   --email your@email.com \
   --agree-tos \
   -d your-domain.com
 
 # Перезапустить nginx
-docker-compose restart nginx
+docker compose restart nginx
 ```
 
 ### Нет места на диске
@@ -313,7 +313,7 @@ docker system prune -a
 
 # Перемести хранилище на другой диск
 # 1. Остановить сервисы
-docker-compose down
+docker compose down
 
 # 2. Перемести данные
 sudo mv /datastore /new-disk/filedrop
@@ -322,7 +322,7 @@ sudo mv /datastore /new-disk/filedrop
 sudo ln -s /new-disk/filedrop /datastore
 
 # 4. Запустить сервисы
-docker-compose up -d
+docker compose up -d
 ```
 
 ## Безопасность
@@ -333,7 +333,7 @@ docker-compose up -d
 
 ```bash
 # Войти в контейнер
-docker-compose exec postgres psql -U filedrop
+docker compose exec postgres psql -U filedrop
 
 # Сменить пароль
 ALTER USER filedrop WITH PASSWORD 'new-password';
@@ -343,7 +343,7 @@ nano .env
 # Изменить POSTGRES_PASSWORD
 
 # Перезапустить backend
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### Смена секретного URL админки
@@ -357,7 +357,7 @@ nano .env
 # Изменить ADMIN_SECRET_PATH
 
 # Перезапустить backend
-docker-compose restart backend
+docker compose restart backend
 ```
 
 ### Firewall
@@ -392,20 +392,20 @@ curl https://your-domain.com/api/health
 docker stats
 
 # Использование ресурсов
-docker-compose exec backend node -e "console.log(process.memoryUsage())"
+docker compose exec backend node -e "console.log(process.memoryUsage())"
 ```
 
 ### Логи
 
 ```bash
 # Все логи в реальном времени
-docker-compose logs -f
+docker compose logs -f
 
 # Только ошибки
-docker-compose logs | grep -i error
+docker compose logs | grep -i error
 
 # Логи за последний час
-docker-compose logs --since=1h
+docker compose logs --since=1h
 ```
 
 ## Производительность
@@ -414,7 +414,7 @@ docker-compose logs --since=1h
 
 ```bash
 # Войти в контейнер
-docker-compose exec postgres psql -U filedrop
+docker compose exec postgres psql -U filedrop
 
 # Проверить размер таблиц
 SELECT 
@@ -454,8 +454,8 @@ gzip_types text/plain application/json application/javascript text/css;
 
 ### Получение помощи
 
-1. Проверьте логи: `docker-compose logs`
-2. Проверьте статус: `docker-compose ps`
+1. Проверьте логи: `docker compose logs`
+2. Проверьте статус: `docker compose ps`
 3. Проверьте ресурсы: `docker stats`
 4. Проверьте диск: `df -h`
 

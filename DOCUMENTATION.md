@@ -145,13 +145,13 @@ npm run dev
 
 ```bash
 # Запустить всё
-docker-compose up -d
+docker compose up -d
 
 # Логи
-docker-compose logs -f backend
+docker compose logs -f backend
 
 # Остановить
-docker-compose down
+docker compose down
 ```
 
 ## 🔧 Конфигурация

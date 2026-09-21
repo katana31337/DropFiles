@@ -19,7 +19,7 @@ VITE_ADMIN_SECRET_PATH=/my-secret-admin-xyz789
 
 ### 2. Первый запуск
 
-1. Запустите сервер: `npm run dev` (или `docker-compose up`)
+1. Запустите сервер: `npm run dev` (или `docker compose up`)
 2. Перейдите по секретному URL: `http://localhost:5173/my-secret-admin-xyz789/setup`
 3. Создайте логин и пароль (минимум 8 символов)
 4. После создания вы будете перенаправлены на страницу входа
