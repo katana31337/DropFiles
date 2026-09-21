@@ -79,20 +79,20 @@ describe('validateMaxDownloadsOptions - валидация лимитов ска
     expect(result.valid).toBe(true);
   });
 
-  it('должен принимать формат с unlimited', () => {
-    const result = validateMaxDownloadsOptions('1,5,10,unlimited');
+  it('должен принимать формат со звёздочкой', () => {
+    const result = validateMaxDownloadsOptions('1,5,10,*');
     expect(result.valid).toBe(true);
   });
 
-  it('должен принимать только unlimited', () => {
-    const result = validateMaxDownloadsOptions('unlimited');
+  it('должен принимать только звёздочку', () => {
+    const result = validateMaxDownloadsOptions('*');
     expect(result.valid).toBe(true);
   });
 
-  it('должен принимать unlimited в любой позиции', () => {
-    expect(validateMaxDownloadsOptions('unlimited,1,5').valid).toBe(true);
-    expect(validateMaxDownloadsOptions('1,unlimited,5').valid).toBe(true);
-    expect(validateMaxDownloadsOptions('1,5,unlimited').valid).toBe(true);
+  it('должен принимать звёздочку в любой позиции', () => {
+    expect(validateMaxDownloadsOptions('*,1,5').valid).toBe(true);
+    expect(validateMaxDownloadsOptions('1,*,5').valid).toBe(true);
+    expect(validateMaxDownloadsOptions('1,5,*').valid).toBe(true);
   });
 
   it('должен отклонять пустую строку', () => {
@@ -130,11 +130,16 @@ describe('validateMaxDownloadsOptions - валидация лимитов ска
   it('должен принимать граничные значения', () => {
     expect(validateMaxDownloadsOptions('1').valid).toBe(true);
     expect(validateMaxDownloadsOptions('10000').valid).toBe(true);
-    expect(validateMaxDownloadsOptions('1,10000,unlimited').valid).toBe(true);
+    expect(validateMaxDownloadsOptions('1,10000,*').valid).toBe(true);
   });
 
   it('должен принимать формат с пробелами', () => {
-    const result = validateMaxDownloadsOptions('1, 5, unlimited');
+    const result = validateMaxDownloadsOptions('1, 5, *');
+    expect(result.valid).toBe(true);
+  });
+
+  it('должен принимать формат без пробелов', () => {
+    const result = validateMaxDownloadsOptions('1,5,*');
     expect(result.valid).toBe(true);
   });
 });

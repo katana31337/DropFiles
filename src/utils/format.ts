@@ -52,7 +52,7 @@ export function retentionLabel(days: RetentionDays): string {
  * Локализация лимита скачиваний/просмотров для select
  */
 export function downloadLabel(opt: MaxDownloads): string {
-  return opt === 'unlimited' ? 'Без ограничений' : `${opt}`;
+  return opt === '*' ? 'Без ограничений' : `${opt}`;
 }
 
 /**

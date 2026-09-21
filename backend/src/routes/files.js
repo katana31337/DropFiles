@@ -65,7 +65,7 @@ filesRouter.post(
         return res.status(400).json({ error: 'Invalid retention days' });
       }
 
-      const maxDl = maxDownloads === 'unlimited' ? null : parseInt(maxDownloads);
+      const maxDl = maxDownloads === '*' ? null : parseInt(maxDownloads);
       if (maxDl !== null && !appConfig.files.maxDownloadsOptions.includes(maxDl)) {
         return res.status(400).json({ error: 'Invalid max downloads' });
       }

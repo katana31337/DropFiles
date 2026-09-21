@@ -81,7 +81,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       const options = {
         retentionDays: '7',
-        maxDownloads: 'unlimited',
+        maxDownloads: '*',
       };
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
@@ -117,7 +117,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       const options = {
         retentionDays: '7',
-        maxDownloads: 'unlimited',
+        maxDownloads: '*',
         password: 'secret123',
       };
 
@@ -148,7 +148,7 @@ describe('FileService - сервис работы с файлами', () => {
       fileRepository.create.mockRejectedValue(new Error('DB error'));
 
       await expect(
-        fileService.upload(file, { retentionDays: '7', maxDownloads: 'unlimited' }, 'session-1')
+        fileService.upload(file, { retentionDays: '7', maxDownloads: '*' }, 'session-1')
       ).rejects.toThrow('DB error');
 
       expect(mockStorage.remove).toHaveBeenCalledWith('path/to/file');

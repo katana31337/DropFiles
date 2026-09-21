@@ -40,7 +40,7 @@ describe('SnippetService - сервис работы со сниппетами',
         title: 'Тестовый сниппет',
         language: 'javascript',
         retentionDays: '7',
-        maxViews: 'unlimited',
+        maxViews: '*',
       };
 
       snippetRepository.isShortLinkUnique.mockResolvedValue(true);
@@ -70,7 +70,7 @@ describe('SnippetService - сервис работы со сниппетами',
       const content = 'секретный код';
       const options = {
         retentionDays: '7',
-        maxViews: 'unlimited',
+        maxViews: '*',
         password: 'secret123',
       };
 
@@ -87,11 +87,11 @@ describe('SnippetService - сервис работы со сниппетами',
       );
     });
 
-    it('должен устанавливать maxViews в null для unlimited', async () => {
+    it('должен устанавливать maxViews в null для звёздочки', async () => {
       const content = 'тест';
       const options = {
         retentionDays: '7',
-        maxViews: 'unlimited',
+        maxViews: '*',
       };
 
       snippetRepository.isShortLinkUnique.mockResolvedValue(true);

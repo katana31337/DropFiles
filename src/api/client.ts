@@ -279,7 +279,7 @@ export function deleteSession(): Promise<{ success: boolean }> {
 
 export interface PublicSettings {
   retentionDays: number[];
-  maxDownloadsOptions: (number | 'unlimited')[];
+  maxDownloadsOptions: (number | '*')[];
   maxFileSizeMB: number;
 }
 

@@ -106,8 +106,8 @@ describe('retentionLabel', () => {
 });
 
 describe('downloadLabel', () => {
-  it('должен возвращать "Без ограничений" для unlimited', () => {
-    expect(downloadLabel('unlimited')).toBe('Без ограничений');
+  it('должен возвращать "Без ограничений" для звёздочки', () => {
+    expect(downloadLabel('*')).toBe('Без ограничений');
   });
 
   it('должен возвращать число как строку', () => {
