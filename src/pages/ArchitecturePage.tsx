@@ -13,6 +13,10 @@ import {
   Star,
   ArrowRight,
   Lightbulb,
+  FolderTree,
+  FileCode,
+  Zap,
+  Lock,
 } from 'lucide-react';
 
 interface ArchitectureOption {
@@ -41,10 +45,10 @@ const architectureSections: ArchitectureSection[] = [
     options: [
       {
         id: 'node-express',
-        title: 'Node.js + Express',
-        description: 'Классический стек. Быстрый старт, огромная экосистема, TypeScript из коробки.',
+        title: 'Node.js + Express ✓ ВЫБРАНО',
+        description: 'Единый язык TypeScript/JavaScript. Быстрый старт, огромная экосистема.',
         pros: [
-          'Единый язык (TypeScript) на фронт и бэк',
+          'Единый язык (JS/TS) на фронт и бэк',
           'Огромное сообщество и готовые решения',
           'Быстрая разработка прототипа',
           'Отличная поддержка WebSocket для реального времени',
@@ -53,76 +57,50 @@ const architectureSections: ArchitectureSection[] = [
           'Менее производителен при тяжёлых вычислениях',
           'Нужен PM2 или подобный для продакшена',
         ],
-        recommended: true,
       },
       {
         id: 'go',
         title: 'Go (Gin/Echo)',
         description: 'Высокопроизводительный, компилируемый. Идеален для микросервисов.',
-        pros: [
-          'Отличная производительность',
-          'Низкое потребление памяти',
-          'Встроенная конкурентность (goroutines)',
-          'Простой деплой — один бинарник',
-        ],
-        cons: [
-          'Другой язык, чем фронтенд',
-          'Меньше готовых решений для файлового обмена',
-        ],
+        pros: ['Отличная производительность', 'Низкое потребление памяти', 'Встроенная конкурентность'],
+        cons: ['Другой язык', 'Меньше готовых решений'],
       },
       {
         id: 'python-fastapi',
         title: 'Python + FastAPI',
-        description: 'Современный, быстрый, с автодокументацией. Отличный для API.',
-        pros: [
-          'Автоматическая документация (Swagger)',
-          'Async из коробки',
-          'Валидация данных через Pydantic',
-          'Простой и читаемый код',
-        ],
-        cons: [
-          'Медленнее Go и Node.js',
-          'GIL может ограничивать многопоточность',
-        ],
+        description: 'Современный, быстрый, с автодокументацией.',
+        pros: ['Swagger из коробки', 'Async из коробки', 'Pydantic валидация'],
+        cons: ['Медленнее Go и Node.js', 'GIL ограничения'],
       },
     ],
   },
   {
-    id: 'database',
-    title: 'Структура базы данных',
-    icon: Database,
-    question: 'Как организовать таблицы в PostgreSQL?',
+    id: 'session',
+    title: 'Идентификация пользователя',
+    icon: Users,
+    question: 'Как отслеживать "анонимного" пользователя?',
     options: [
       {
-        id: 'normalized',
-        title: 'Нормализованная схема',
-        description: 'Разделение на таблицы: users(sessions), files, downloads, settings.',
+        id: 'cookie-uuid',
+        title: 'Cookie + UUID токен ✓ ВЫБРАНО',
+        description: 'Генерируем UUID, храним в httpOnly cookie. Rolling expiration 7 дней.',
         pros: [
-          'Нет дублирования данных',
-          'Легко расширять',
-          'Целостность данных через FK',
-          'Эффективные JOIN запросы',
+          'Прозрачно для пользователя',
+          'Безопасно (httpOnly — недоступен из JS)',
+          'Rolling expiration — продлевается при каждом визите',
+          'Каскадное удаление истории при истечении',
         ],
         cons: [
-          'Более сложные запросы',
-          'Нужно больше JOIN-ов',
+          'Зависит от cookie браузера',
+          'Не работает если cookie отключены',
         ],
-        recommended: true,
       },
       {
-        id: 'denormalized',
-        title: 'Денормализованная схема',
-        description: 'Минимум таблиц, данные дублируются для скорости чтения.',
-        pros: [
-          'Быстрые чтения без JOIN',
-          'Простые запросы',
-          'Меньше таблиц для управления',
-        ],
-        cons: [
-          'Дублирование данных',
-          'Сложнее обновлять',
-          'Риск рассинхронизации',
-        ],
+        id: 'fingerprint',
+        title: 'Browser Fingerprint',
+        description: 'Уникальный отпечаток браузера.',
+        pros: ['Работает без cookie'],
+        cons: ['Менее надёжный', 'Этические вопросы'],
       },
     ],
   },
@@ -134,126 +112,26 @@ const architectureSections: ArchitectureSection[] = [
     options: [
       {
         id: 'local',
-        title: 'Локальная файловая система',
-        description: 'Файлы хранятся на диске сервера. Просто, но ограничено.',
+        title: 'Локальное /datastore ✓ ВЫБРАНО',
+        description: 'Файлы на диске сервера в /datastore. S3 как опция расширения.',
         pros: [
           'Простая реализация',
           'Нет зависимости от внешних сервисов',
           'Быстрый доступ к файлам',
           'Бесплатно',
+          'Легко мигрировать на S3 позже',
         ],
         cons: [
           'Ограничено размером диска',
-          'Нет отказоустойчивости',
-          'Сложно масштабировать',
+          'Нет отказоустойчивости из коробки',
         ],
       },
       {
         id: 's3',
         title: 'S3-совместимое хранилище',
         description: 'MinIO, AWS S3, или любой S3-совместимый сервис.',
-        pros: [
-          'Неограниченное хранилище',
-          'Отказоустойчивость',
-          'Легко масштабировать',
-          'CDN интеграция',
-        ],
-        cons: [
-          'Дополнительная зависимость',
-          'Стоимость при больших объёмах',
-          'Сложнее настройка',
-        ],
-        recommended: true,
-      },
-    ],
-  },
-  {
-    id: 'session',
-    title: 'Идентификация анонимного пользователя',
-    icon: Users,
-    question: 'Как отслеживать "анонимного" пользователя?',
-    options: [
-      {
-        id: 'cookie-uuid',
-        title: 'Cookie + UUID токен',
-        description: 'Генерируем UUID, храним в httpOnly cookie. Привязываем к сессии в БД.',
-        pros: [
-          'Прозрачно для пользователя',
-          'Безопасно (httpOnly)',
-          'Легко реализовать',
-          'Работает с rolling expiration',
-        ],
-        cons: [
-          'Зависит от cookie браузера',
-          'Не работает в режиме инкогнито (частично)',
-        ],
-        recommended: true,
-      },
-      {
-        id: 'fingerprint',
-        title: 'Browser Fingerprint',
-        description: 'Уникальный отпечаток браузера на основе характеристик устройства.',
-        pros: [
-          'Работает без cookie',
-          'Устойчив к очистке данных',
-        ],
-        cons: [
-          'Менее надёжная идентификация',
-          'Может меняться при обновлении браузера',
-          'Этические вопросы приватности',
-        ],
-      },
-      {
-        id: 'local-token',
-        title: 'LocalStorage токен',
-        description: 'UUID хранится в localStorage браузера.',
-        pros: [
-          'Простая реализация',
-          'Долговечное хранение',
-        ],
-        cons: [
-          'Не передаётся автоматически',
-          'Удаляется при очистке данных',
-          'Менее безопасно',
-        ],
-      },
-    ],
-  },
-  {
-    id: 'security',
-    title: 'Безопасность файлов',
-    icon: Shield,
-    question: 'Как защитить загруженные файлы?',
-    options: [
-      {
-        id: 'encrypted',
-        title: 'Шифрование на сервере',
-        description: 'AES-256 шифрование файлов при загрузке. Ключ привязан к ссылке.',
-        pros: [
-          'Максимальная приватность',
-          'Даже админ не увидит содержимое',
-          'Соответствует GDPR',
-        ],
-        cons: [
-          'Нагрузка на CPU',
-          'Сложнее реализовать',
-          'Если потеряли ключ — файл не восстановить',
-        ],
-      },
-      {
-        id: 'signed-urls',
-        title: 'Подписанные URL (presigned)',
-        description: 'Файлы хранятся как есть, но доступ только через временные подписанные ссылки.',
-        pros: [
-          'Нет нагрузки шифрования',
-          'Гибкий контроль доступа',
-          'Временные ссылки истекают',
-        ],
-        cons: [
-          'Файлы доступны на диске',
-          'Нужен S3 или подобный сервис',
-        ],
-        recommended: true,
+        pros: ['Неограниченное хранилище', 'Отказоустойчивость', 'CDN'],
+        cons: ['Дополнительная зависимость', 'Стоимость'],
       },
     ],
   },
@@ -265,45 +143,46 @@ const architectureSections: ArchitectureSection[] = [
     options: [
       {
         id: 'cron',
-        title: 'Cron задача / планировщик',
-        description: 'Периодическая задача (каждые N минут) проверяет и удаляет истёкшие файлы.',
+        title: 'Cron задача (каждые 15 мин) ✓ ВЫБРАНО',
+        description: 'node-cron проверяет и удаляет истёкшие файлы и сессии.',
         pros: [
           'Простая реализация',
           'Надёжная',
           'Легко мониторить',
-          'Можно запускать отдельно от приложения',
+          'Отдельный от основного приложения',
         ],
         cons: [
-          'Не мгновенная очистка',
-          'Нужен дополнительный процесс',
+          'Не мгновенная очистка (до 15 мин задержки)',
         ],
-        recommended: true,
       },
       {
         id: 'on-access',
         title: 'Очистка при обращении',
-        description: 'При каждом запросе проверяем срок действия и удаляем если истёк.',
-        pros: [
-          'Мгновенная очистка',
-          'Не нужен отдельный процесс',
-        ],
-        cons: [
-          'Нагрузка при каждом запросе',
-          'Файлы без обращений не удалятся',
-          'Мусор в хранилище',
-        ],
+        description: 'При каждом запросе проверяем срок.',
+        pros: ['Мгновенная'],
+        cons: ['Нагрузка', 'Мусор в хранилище'],
       },
     ],
   },
 ];
 
+// Выбранные решения
+const SELECTED = {
+  backend: 'node-express',
+  session: 'cookie-uuid',
+  storage: 'local',
+  cleanup: 'cron',
+};
+
 function OptionCard({
   option,
   isSelected,
+  isChosen,
   onSelect,
 }: {
   option: ArchitectureOption;
   isSelected: boolean;
+  isChosen: boolean;
   onSelect: () => void;
 }) {
   return (
@@ -311,25 +190,31 @@ function OptionCard({
       layout
       onClick={onSelect}
       className={`relative p-4 rounded-xl border cursor-pointer transition-all ${
-        isSelected
+        isChosen
+          ? 'border-green-500/50 bg-green-500/10'
+          : isSelected
           ? 'border-purple-500 bg-purple-500/10'
           : 'border-white/10 bg-white/5 hover:border-white/20'
       }`}
     >
-      {option.recommended && (
-        <div className="absolute -top-2 -right-2 bg-yellow-500 text-black text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-          <Star className="w-3 h-3" />
-          Рекомендуем
+      {isChosen && (
+        <div className="absolute -top-2 -right-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+          <Check className="w-3 h-3" />
+          Выбрано
         </div>
       )}
 
       <div className="flex items-start gap-3">
         <div
           className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
-            isSelected ? 'border-purple-500 bg-purple-500' : 'border-white/30'
+            isChosen
+              ? 'border-green-500 bg-green-500'
+              : isSelected
+              ? 'border-purple-500 bg-purple-500'
+              : 'border-white/30'
           }`}
         >
-          {isSelected && <Check className="w-3 h-3 text-white" />}
+          {(isSelected || isChosen) && <Check className="w-3 h-3 text-white" />}
         </div>
 
         <div className="flex-1">
@@ -377,16 +262,62 @@ function OptionCard({
   );
 }
 
+function ProjectTree() {
+  const treeLines = [
+    { indent: 0, icon: '📁', name: 'filedrop/', color: 'text-yellow-400' },
+    { indent: 1, icon: '📁', name: 'frontend/', color: 'text-blue-400' },
+    { indent: 2, icon: '📁', name: 'src/', color: 'text-blue-300' },
+    { indent: 3, icon: '📁', name: 'pages/', color: 'text-blue-200' },
+    { indent: 4, icon: '📄', name: 'UploadPage.tsx', color: 'text-white/60' },
+    { indent: 4, icon: '📄', name: 'DownloadPage.tsx', color: 'text-white/60' },
+    { indent: 4, icon: '📄', name: 'HistoryPage.tsx', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'store/', color: 'text-blue-200' },
+    { indent: 4, icon: '📄', name: 'appStore.ts (Zustand)', color: 'text-white/60' },
+    { indent: 3, icon: '📄', name: 'App.tsx', color: 'text-white/60' },
+    { indent: 1, icon: '📁', name: 'backend/', color: 'text-green-400' },
+    { indent: 2, icon: '📁', name: 'src/', color: 'text-green-300' },
+    { indent: 3, icon: '📄', name: 'index.js (Express)', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'config/', color: 'text-green-200' },
+    { indent: 4, icon: '📄', name: 'database.js (PostgreSQL pool)', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'middleware/', color: 'text-green-200' },
+    { indent: 4, icon: '📄', name: 'session.js (Cookie+UUID)', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'routes/', color: 'text-green-200' },
+    { indent: 4, icon: '📄', name: 'files.js (CRUD API)', color: 'text-white/60' },
+    { indent: 4, icon: '📄', name: 'sessions.js', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'services/', color: 'text-green-200' },
+    { indent: 4, icon: '📁', name: 'storage/', color: 'text-green-100' },
+    { indent: 5, icon: '📄', name: 'StorageInterface.js', color: 'text-white/60' },
+    { indent: 5, icon: '📄', name: 'LocalStorage.js ✓', color: 'text-green-400' },
+    { indent: 5, icon: '📄', name: 'S3Storage.js (future)', color: 'text-white/40' },
+    { indent: 4, icon: '📄', name: 'CleanupService.js (cron)', color: 'text-white/60' },
+    { indent: 3, icon: '📁', name: 'utils/', color: 'text-green-200' },
+    { indent: 4, icon: '📄', name: 'shortLink.js', color: 'text-white/60' },
+    { indent: 4, icon: '📄', name: 'hash.js (bcrypt)', color: 'text-white/60' },
+    { indent: 2, icon: '📁', name: 'datastore/', color: 'text-orange-400' },
+    { indent: 3, icon: '📄', name: '{год}/{месяц}/{день}/', color: 'text-white/40' },
+    { indent: 2, icon: '📄', name: '.env', color: 'text-white/60' },
+  ];
+
+  return (
+    <div className="bg-black/30 rounded-lg p-4 font-mono text-sm overflow-x-auto">
+      {treeLines.map((line, i) => (
+        <div
+          key={i}
+          className="flex items-center gap-1 leading-6"
+          style={{ paddingLeft: `${line.indent * 20}px` }}
+        >
+          <span>{line.icon}</span>
+          <span className={line.color}>{line.name}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function ArchitecturePage() {
   const [expandedSection, setExpandedSection] = useState<string | null>('backend');
-  const [selections, setSelections] = useState<Record<string, string>>({
-    backend: 'node-express',
-    database: 'normalized',
-    storage: 's3',
-    session: 'cookie-uuid',
-    security: 'signed-urls',
-    cleanup: 'cron',
-  });
+  const [selections, setSelections] = useState<Record<string, string>>(SELECTED);
+  const [showTree, setShowTree] = useState(false);
 
   const toggleSection = (id: string) => {
     setExpandedSection(expandedSection === id ? null : id);
@@ -395,8 +326,6 @@ export default function ArchitecturePage() {
   const selectOption = (sectionId: string, optionId: string) => {
     setSelections((prev) => ({ ...prev, [sectionId]: optionId }));
   };
-
-  const selectedCount = Object.keys(selections).length;
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -407,28 +336,27 @@ export default function ArchitecturePage() {
       >
         <h1 className="text-3xl font-bold text-white mb-2">Архитектура проекта</h1>
         <p className="text-white/60">
-          Выберите оптимальные решения для каждого компонента системы
+          Выбранные решения и структура проекта
         </p>
-        <div className="flex items-center justify-center gap-2 mt-4 text-sm text-white/40">
-          <Lightbulb className="w-4 h-4 text-yellow-400" />
-          <span>Выбрано решений: {selectedCount}/{architectureSections.length}</span>
+      </motion.div>
+
+      {/* Status Banner */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="mb-8 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl p-4 border border-green-500/20 flex items-center gap-3"
+      >
+        <Zap className="w-6 h-6 text-green-400 shrink-0" />
+        <div>
+          <p className="text-green-400 font-medium text-sm">Архитектура определена</p>
+          <p className="text-white/50 text-xs">
+            Node.js + Express • Cookie/UUID сессии • Локальное хранилище /datastore • Cron очистка
+          </p>
         </div>
       </motion.div>
 
-      {/* Progress */}
-      <div className="mb-8">
-        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${(selectedCount / architectureSections.length) * 100}%` }}
-            transition={{ duration: 0.5 }}
-          />
-        </div>
-      </div>
-
       {/* Sections */}
-      <div className="space-y-3">
+      <div className="space-y-3 mb-8">
         {architectureSections.map((section, index) => {
           const Icon = section.icon;
           const isExpanded = expandedSection === section.id;
@@ -441,24 +369,21 @@ export default function ArchitecturePage() {
               transition={{ delay: index * 0.1 }}
               className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden"
             >
-              {/* Header */}
               <button
                 onClick={() => toggleSection(section.id)}
                 className="w-full p-4 flex items-center gap-3 text-left hover:bg-white/5 transition-colors"
               >
-                <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-purple-400" />
+                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-green-400" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white font-medium">{section.title}</h3>
                   <p className="text-white/40 text-sm">{section.question}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  {selections[section.id] && (
-                    <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
-                      ✓ Выбрано
-                    </span>
-                  )}
+                  <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                    ✓ Решено
+                  </span>
                   {isExpanded ? (
                     <ChevronDown className="w-5 h-5 text-white/40" />
                   ) : (
@@ -467,7 +392,6 @@ export default function ArchitecturePage() {
                 </div>
               </button>
 
-              {/* Content */}
               <AnimatePresence>
                 {isExpanded && (
                   <motion.div
@@ -483,6 +407,7 @@ export default function ArchitecturePage() {
                           key={option.id}
                           option={option}
                           isSelected={selections[section.id] === option.id}
+                          isChosen={SELECTED[section.id as keyof typeof SELECTED] === option.id}
                           onSelect={() => selectOption(section.id, option.id)}
                         />
                       ))}
@@ -495,90 +420,193 @@ export default function ArchitecturePage() {
         })}
       </div>
 
-      {/* Summary */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-        className="mt-8 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-500/20"
-      >
-        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
-          <ArrowRight className="w-5 h-5 text-purple-400" />
-          Ваш выбор архитектуры
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {architectureSections.map((section) => {
-            const selectedOption = section.options.find(
-              (o) => o.id === selections[section.id]
-            );
-            return (
-              <div key={section.id} className="flex items-center gap-2 text-sm">
-                <span className="text-white/40">{section.title}:</span>
-                <span className="text-white font-medium">{selectedOption?.title}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 p-4 bg-black/20 rounded-lg">
-          <p className="text-white/60 text-sm">
-            💡 <strong className="text-white">Следующий шаг:</strong> На основе вашего выбора
-            мы спроектируем схему БД, API endpoints и структуру проекта. 
-            Готовы перейти к реализации?
-          </p>
-        </div>
-      </motion.div>
-
-      {/* DB Schema Preview */}
+      {/* Project Structure Toggle */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="mt-8 bg-white/5 rounded-xl border border-white/10 p-6"
+        transition={{ delay: 0.3 }}
+        className="mb-8"
+      >
+        <button
+          onClick={() => setShowTree(!showTree)}
+          className="w-full bg-white/5 rounded-xl border border-white/10 p-4 flex items-center gap-3 hover:bg-white/10 transition-colors"
+        >
+          <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
+            <FolderTree className="w-5 h-5 text-purple-400" />
+          </div>
+          <div className="flex-1 text-left">
+            <h3 className="text-white font-medium">Структура проекта</h3>
+            <p className="text-white/40 text-sm">
+              {showTree ? 'Скрыть' : 'Показать'} дерево файлов
+            </p>
+          </div>
+          {showTree ? (
+            <ChevronDown className="w-5 h-5 text-white/40" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-white/40" />
+          )}
+        </button>
+
+        <AnimatePresence>
+          {showTree && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-3">
+                <ProjectTree />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* DB Schema */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mb-8 bg-white/5 rounded-xl border border-white/10 p-6"
       >
         <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
           <Database className="w-5 h-5 text-purple-400" />
-          Предварительная схема PostgreSQL
+          Схема PostgreSQL
         </h3>
         <div className="bg-black/30 rounded-lg p-4 font-mono text-xs text-white/70 overflow-x-auto">
-          <pre>{`-- Таблица сессий (анонимные пользователи)
+          <pre>{`-- Сессии (анонимные пользователи)
 CREATE TABLE sessions (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  token         VARCHAR(64) UNIQUE NOT NULL,
-  created_at    TIMESTAMP DEFAULT NOW(),
-  last_activity TIMESTAMP DEFAULT NOW(),
-  expires_at    TIMESTAMP NOT NULL
+  token         VARCHAR(64) UNIQUE NOT NULL,  -- UUID в cookie
+  created_at    TIMESTAMPTZ DEFAULT NOW(),
+  last_activity TIMESTAMPTZ DEFAULT NOW(),    -- обновляется при визите
+  expires_at    TIMESTAMPTZ NOT NULL          -- rolling: +7 дней
 );
 
--- Таблица файлов
+-- Файлы
 CREATE TABLE files (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id    UUID REFERENCES sessions(id) ON DELETE CASCADE,
-  original_name VARCHAR(255) NOT NULL,
-  storage_path  VARCHAR(512) NOT NULL,
-  file_size     BIGINT NOT NULL,
-  mime_type     VARCHAR(128),
-  short_link    VARCHAR(16) UNIQUE NOT NULL,
-  password_hash VARCHAR(255),
-  max_downloads INTEGER,  -- NULL = unlimited
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id     UUID REFERENCES sessions(id) ON DELETE CASCADE,
+  original_name  VARCHAR(255) NOT NULL,
+  storage_path   VARCHAR(512) NOT NULL,      -- путь в /datastore
+  file_size      BIGINT NOT NULL,
+  mime_type      VARCHAR(128),
+  short_link     VARCHAR(16) UNIQUE NOT NULL, -- 8 символов
+  password_hash  VARCHAR(255),               -- bcrypt
+  max_downloads  INTEGER,                    -- NULL = ∞
   download_count INTEGER DEFAULT 0,
-  created_at    TIMESTAMP DEFAULT NOW(),
-  expires_at    TIMESTAMP NOT NULL,
-  status        VARCHAR(20) DEFAULT 'active'
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  expires_at     TIMESTAMPTZ NOT NULL,
+  status         VARCHAR(20) DEFAULT 'active'
 );
 
--- Таблица настроек сервиса
+-- Настройки сервиса
 CREATE TABLE settings (
-  key   VARCHAR(64) PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMP DEFAULT NOW()
-);
+  key        VARCHAR(64) PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);`}</pre>
+        </div>
+      </motion.div>
 
--- Индексы
-CREATE INDEX idx_files_short_link ON files(short_link);
-CREATE INDEX idx_files_expires ON files(expires_at);
-CREATE INDEX idx_sessions_expires ON sessions(expires_at);
-CREATE INDEX idx_sessions_token ON sessions(token);`}</pre>
+      {/* Flow Diagram */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mb-8 bg-white/5 rounded-xl border border-white/10 p-6"
+      >
+        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-yellow-400" />
+          Поток данных: Загрузка файла
+        </h3>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {[
+            { label: 'Браузер', icon: '🌐' },
+            { label: '→' },
+            { label: 'Express + Multer', icon: '⚡' },
+            { label: '→' },
+            { label: 'Session Middleware', icon: '🍪' },
+            { label: '→' },
+            { label: 'LocalStorage.save()', icon: '💾' },
+            { label: '→' },
+            { label: 'PostgreSQL', icon: '🐘' },
+            { label: '→' },
+            { label: 'Response: short_link', icon: '🔗' },
+          ].map((step, i) =>
+            step.icon && step.label.length > 1 ? (
+              <div
+                key={i}
+                className="bg-purple-500/10 border border-purple-500/20 rounded-lg px-3 py-2 flex items-center gap-1"
+              >
+                <span>{step.icon}</span>
+                <span className="text-white/80">{step.label}</span>
+              </div>
+            ) : (
+              <span key={i} className="text-purple-400 font-bold">
+                {step.label}
+              </span>
+            )
+          )}
+        </div>
+      </motion.div>
+
+      {/* Next Steps */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6 }}
+        className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-xl p-6 border border-purple-500/20"
+      >
+        <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+          <ArrowRight className="w-5 h-5 text-purple-400" />
+          Что реализовано / Что дальше
+        </h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-green-400 text-sm font-medium mb-2">✓ Реализовано:</p>
+            <ul className="space-y-1.5">
+              {[
+                'Express сервер с API',
+                'PostgreSQL подключение + миграции',
+                'Cookie+UUID сессии (rolling 7 дней)',
+                'Загрузка файлов (multer → /datastore)',
+                'Короткие ссылки (8 символов)',
+                'Пароли (bcrypt хэширование)',
+                'Лимит скачиваний',
+                'Cron очистка (каждые 15 мин)',
+                'Storage Interface (расширяемо до S3)',
+                'Фронтенд (React + Zustand)',
+              ].map((item, i) => (
+                <li key={i} className="text-white/60 text-sm flex items-start gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-yellow-400 text-sm font-medium mb-2">⏳ Следующие шаги:</p>
+            <ul className="space-y-1.5">
+              {[
+                'Подключить фронтенд к реальному API',
+                'Добавить передачу текста (следующий модуль)',
+                'QR-коды для ссылок',
+                'Уведомления о скачивании',
+                'Статистика и мониторинг',
+                'Docker контейнеризация',
+                'Rate limiting',
+                'S3 реализация (когда нужно)',
+              ].map((item, i) => (
+                <li key={i} className="text-white/60 text-sm flex items-start gap-1.5">
+                  <ArrowRight className="w-3.5 h-3.5 text-yellow-400 shrink-0 mt-0.5" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </motion.div>
     </div>
