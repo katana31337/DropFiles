@@ -313,6 +313,15 @@ services:
       - filedrop-network
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: filedrop-frontend
+    networks:
+      - filedrop-network
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
     container_name: filedrop-nginx
@@ -322,9 +331,9 @@ services:
     volumes:
       - ./nginx-self-signed.conf:/etc/nginx/nginx.conf:ro
       - \${CERT_PATH}:/etc/nginx/certs:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
+      - frontend
     networks:
       - filedrop-network
     restart: unless-stopped
@@ -375,6 +384,15 @@ services:
       - filedrop-network
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: filedrop-frontend
+    networks:
+      - filedrop-network
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
     container_name: filedrop-nginx
@@ -384,9 +402,9 @@ services:
     volumes:
       - ./nginx-letsencrypt.conf:/etc/nginx/nginx.conf:ro
       - \${CERT_PATH}:/etc/letsencrypt:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
+      - frontend
     networks:
       - filedrop-network
     restart: unless-stopped
@@ -474,8 +492,15 @@ http {
         client_max_body_size 100M;
         
         location / {
-            root /usr/share/nginx/html;
-            try_files \$uri \$uri/ /index.html;
+            proxy_pass http://frontend:80;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_cache_bypass \$http_upgrade;
         }
         
         location /api {
@@ -538,8 +563,15 @@ http {
         client_max_body_size 100M;
         
         location / {
-            root /usr/share/nginx/html;
-            try_files \$uri \$uri/ /index.html;
+            proxy_pass http://frontend:80;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection 'upgrade';
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto \$scheme;
+            proxy_cache_bypass \$http_upgrade;
         }
         
         location /api {
@@ -570,29 +602,16 @@ if [ "$SKIP_NGINX" != "true" ]; then
 fi
 
 # ============================================
-# 9. Сборка frontend
+# 9. Сборка Docker образов
 # ============================================
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}  Шаг 7: Сборка frontend${NC}"
+echo -e "${BLUE}  Шаг 7: Сборка Docker образов${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
 echo ""
 
-if [ -d "frontend/dist" ] && [ -f "frontend/dist/index.html" ]; then
-    warning "Frontend уже собран (frontend/dist существует)"
-    read -p "Пересобрать? [y/N]: " rebuild_frontend
-    if [[ ! $rebuild_frontend =~ ^[Yy]$ ]]; then
-        info "Пропускаем сборку, используем существующий build"
-        SKIP_BUILD=true
-    fi
-fi
-
-if [ "$SKIP_BUILD" != "true" ]; then
-    info "Сборка frontend..."
-    npm install
-    npm run build
-    success "Frontend собран"
-fi
+info "Сборка Docker образов (frontend компилируется внутри контейнера)..."
+echo ""
 
 # ============================================
 # 10. Запуск Docker

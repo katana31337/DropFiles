@@ -74,10 +74,30 @@ sudo ./install.sh
 - `nginx-self-signed.conf` или `nginx-letsencrypt.conf` — конфигурация nginx
 
 ### 7. Сборка и запуск
-- Устанавливает npm зависимости
-- Собирает frontend
+- Собирает Docker образы (frontend компилируется внутри контейнера через multi-stage build)
 - Запускает Docker контейнеры
 - Получает Let's Encrypt сертификат (если выбран)
+
+### 8. Multi-stage Build для Frontend
+
+Frontend использует multi-stage build для оптимизации:
+
+**Этап 1: Сборка (node:20-alpine)**
+- Устанавливает все зависимости (включая dev)
+- Компилирует TypeScript в JavaScript
+- Создаёт production build
+
+**Этап 2: Production (nginx:alpine)**
+- Копирует только собранные файлы из этапа 1
+- Не содержит Node.js, npm, исходный код
+- Размер образа: ~25MB вместо ~500MB
+
+**Преимущества:**
+- ✅ Не нужен Node.js на хосте
+- ✅ Полная изоляция окружения
+- ✅ Гарантированно одинаковые версии
+- ✅ Меньше финальный образ
+- ✅ "Build once, run anywhere"
 
 ## После установки
 

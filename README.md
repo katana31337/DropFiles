@@ -16,6 +16,7 @@ Frontend (React + Vite + Tailwind)  →  Backend (Node.js + Express)  →  Postg
 - **Хранилище:** Локальное `/datastore` (расширяемо до S3)
 - **Очистка:** Cron каждые 15 минут
 - **БД:** PostgreSQL
+- **Docker:** Multi-stage build (frontend компилируется внутри контейнера)
 
 ## 📁 Структура
 
@@ -74,7 +75,8 @@ sudo ./install.sh
 - Сгенерирует безопасные пароли
 - Создаст `/datastore` для файлов
 - Сгенерирует `docker-compose.yml` и `nginx.conf`
-- Соберёт и запустит все контейнеры
+- Соберёт Docker образы (frontend компилируется внутри контейнера)
+- Запустит все контейнеры
 
 После установки вы получите:
 - URL сервиса (https://your-domain.com)
