@@ -57,6 +57,7 @@ jest.unstable_mockModule('../../src/config/database.js', () => ({
 
 const { fileRepository } = await import('../../src/repositories/FileRepository.js');
 const { getStorage } = await import('../../src/services/storage/index.js');
+const { hashPassword } = await import('../../src/utils/hash.js');
 const { FileService } = await import('../../src/services/FileService.js');
 
 describe('FileService - сервис работы с файлами', () => {
@@ -149,6 +150,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
       mockStorageSave.mockResolvedValue('path/to/file');
+      mockStorageRemove.mockResolvedValue(true);
       fileRepository.create.mockRejectedValue(new Error('DB error'));
 
       await expect(
