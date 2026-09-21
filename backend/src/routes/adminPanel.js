@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAdmin } from '../middleware/adminAuth.js';
-import { getAppConfig, updateSettings, invalidateCache } from '../config/settings.js';
+import { getAppConfig, updateSettings, invalidateCache, validateRetentionDays, validateMaxDownloadsOptions } from '../config/settings.js';
 import pool from '../config/database.js';
 
 export const adminPanelRouter = Router();
@@ -33,7 +33,7 @@ adminPanelRouter.put('/settings', async (req, res) => {
     // Валидация ключей
     const allowedKeys = [
       'max_file_size_mb',
-      'retention_options',
+      'retention_days',
       'max_downloads_options',
       'session_duration_days',
       'upload_rate_limit',
@@ -45,6 +45,22 @@ adminPanelRouter.put('/settings', async (req, res) => {
     for (const key of Object.keys(updates)) {
       if (!allowedKeys.includes(key)) {
         return res.status(400).json({ error: `Unknown setting: ${key}` });
+      }
+    }
+
+    // Валидация формата retention_days
+    if (updates.retention_days) {
+      const validation = validateRetentionDays(updates.retention_days);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
+      }
+    }
+
+    // Валидация формата max_downloads_options
+    if (updates.max_downloads_options) {
+      const validation = validateMaxDownloadsOptions(updates.max_downloads_options);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error });
       }
     }
 

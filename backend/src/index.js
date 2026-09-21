@@ -15,6 +15,7 @@ import { sessionsRouter } from './routes/sessions.js';
 import { snippetsRouter } from './routes/snippets.js';
 import { adminRouter } from './routes/admin.js';
 import { adminPanelRouter } from './routes/adminPanel.js';
+import { publicSettingsRouter } from './routes/publicSettings.js';
 import { startCleanupJob } from './services/CleanupService.js';
 
 dotenv.config();
@@ -46,6 +47,7 @@ app.use(sessionMiddleware);
 app.use('/api/files', filesRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/snippets', snippetsRouter);
+app.use('/api/settings', publicSettingsRouter);
 
 // Admin routes
 app.use('/api/admin', adminRouter); // /api/admin/setup, /api/admin/login, /api/admin/status

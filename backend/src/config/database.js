@@ -91,12 +91,11 @@ export async function initDatabase() {
       INSERT INTO settings (key, value) VALUES
         ('max_file_size_mb', '100'),
         ('session_duration_days', '7'),
-        ('retention_options', '1,3,5,7,20,30'),
+        ('retention_days', '1,3,5,7,20,30'),
         ('max_downloads_options', '1,2,5,7,unlimited'),
         ('upload_rate_limit', '5'),
         ('api_rate_limit', '60'),
         ('is_setup_complete', 'false'),
-        ('admin_secret_path', ''),
         ('notification_email', ''),
         ('notification_webhook', '')
       ON CONFLICT (key) DO NOTHING;

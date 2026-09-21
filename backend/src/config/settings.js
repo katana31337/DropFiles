@@ -1,4 +1,4 @@
-import pool from './database.js';
+import pool from '../config/database.js';
 
 /**
  * Сервис для работы с настройками приложения.
@@ -15,7 +15,6 @@ const CACHE_TTL = 60 * 1000; // 1 минута
 export async function getAllSettings() {
   const now = Date.now();
   
-  // Возвращаем из кэша если актуально
   if (settingsCache && now - cacheTimestamp < CACHE_TTL) {
     return settingsCache;
   }
@@ -32,7 +31,6 @@ export async function getAllSettings() {
     return settingsCache;
   } catch (error) {
     console.error('Failed to load settings from DB:', error);
-    // Возвращаем кэш даже если он устарел (лучше что-то чем ничего)
     return settingsCache || {};
   }
 }
@@ -55,9 +53,18 @@ export async function getNumericSetting(key, defaultValue = 0) {
 }
 
 /**
- * Получить настройку как массив (через запятую)
+ * Получить настройку как массив чисел (через запятую)
  */
-export async function getArraySetting(key, defaultValue = []) {
+export async function getNumberArraySetting(key, defaultValue = []) {
+  const value = await getSetting(key);
+  if (!value) return defaultValue;
+  return value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+}
+
+/**
+ * Получить настройку как массив строк (через запятую)
+ */
+export async function getStringArraySetting(key, defaultValue = []) {
   const value = await getSetting(key);
   if (!value) return defaultValue;
   return value.split(',').map(s => s.trim());
@@ -80,8 +87,6 @@ export async function updateSetting(key, value) {
     );
     
     await client.query('COMMIT');
-    
-    // Инвалидируем кэш
     invalidateCache();
     
     return true;
@@ -113,8 +118,6 @@ export async function updateSettings(settings) {
     }
     
     await client.query('COMMIT');
-    
-    // Инвалидируем кэш
     invalidateCache();
     
     return true;
@@ -144,9 +147,10 @@ export async function getAppConfig() {
   return {
     files: {
       maxFileSizeMB: parseInt(settings.max_file_size_mb) || 100,
-      retentionDays: (settings.retention_options || '1,3,5,7,20,30')
+      retentionDays: (settings.retention_days || '1,3,5,7,20,30')
         .split(',')
-        .map(n => parseInt(n.trim())),
+        .map(n => parseInt(n.trim()))
+        .filter(n => !isNaN(n)),
       maxDownloadsOptions: (settings.max_downloads_options || '1,2,5,7,unlimited')
         .split(',')
         .map(s => s.trim() === 'unlimited' ? null : parseInt(s)),
@@ -159,4 +163,72 @@ export async function getAppConfig() {
       apiPerMinute: parseInt(settings.api_rate_limit) || 60,
     },
   };
+}
+
+/**
+ * Валидация формата retention_days: "число,число,число"
+ * Возвращает { valid: boolean, error?: string }
+ */
+export function validateRetentionDays(value) {
+  if (!value || typeof value !== 'string') {
+    return { valid: false, error: 'Value must be a string' };
+  }
+
+  // Регулярное выражение: одна или более групп "число" разделённых запятыми
+  const pattern = /^\d+(,\d+)*$/;
+  
+  if (!pattern.test(value.trim())) {
+    return { 
+      valid: false, 
+      error: 'Invalid format. Use: number,number,number (e.g., 1,3,7,30)' 
+    };
+  }
+
+  // Проверяем что все числа валидны и в разумных пределах
+  const numbers = value.split(',').map(s => parseInt(s.trim()));
+  
+  for (const num of numbers) {
+    if (isNaN(num) || num < 1 || num > 365) {
+      return { 
+        valid: false, 
+        error: 'Each number must be between 1 and 365' 
+      };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Валидация формата max_downloads_options: "число,число,unlimited"
+ */
+export function validateMaxDownloadsOptions(value) {
+  if (!value || typeof value !== 'string') {
+    return { valid: false, error: 'Value must be a string' };
+  }
+
+  const pattern = /^(\d+|unlimited)(,(\d+|unlimited))*$/;
+  
+  if (!pattern.test(value.trim())) {
+    return { 
+      valid: false, 
+      error: 'Invalid format. Use: number,number,unlimited (e.g., 1,5,10,unlimited)' 
+    };
+  }
+
+  const parts = value.split(',').map(s => s.trim());
+  
+  for (const part of parts) {
+    if (part !== 'unlimited') {
+      const num = parseInt(part);
+      if (isNaN(num) || num < 1 || num > 10000) {
+        return { 
+          valid: false, 
+          error: 'Each number must be between 1 and 10000' 
+        };
+      }
+    }
+  }
+
+  return { valid: true };
 }

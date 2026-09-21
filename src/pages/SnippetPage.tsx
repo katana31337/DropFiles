@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Clock,
@@ -9,11 +9,19 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react';
-import { createSnippet } from '../api/client';
+import { createSnippet, getPublicSettings } from '../api/client';
 import { RetentionDays, MaxDownloads } from '../types';
 import { retentionLabel, downloadLabel } from '../utils/format';
+import type { PublicSettings } from '../api/client';
+
+const DEFAULT_SETTINGS: PublicSettings = {
+  retentionDays: [1, 3, 5, 7, 20, 30],
+  maxDownloadsOptions: [1, 2, 5, 7, 'unlimited'],
+  maxFileSizeMB: 100,
+};
 
 export default function SnippetPage() {
+  const [settings, setSettings] = useState<PublicSettings>(DEFAULT_SETTINGS);
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [language, setLanguage] = useState('');
@@ -26,8 +34,12 @@ export default function SnippetPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const retentionOptions: RetentionDays[] = [1, 3, 5, 7, 20, 30];
-  const viewOptions: MaxDownloads[] = [1, 2, 5, 7, 'unlimited'];
+  // Загружаем настройки из API
+  useEffect(() => {
+    getPublicSettings()
+      .then(setSettings)
+      .catch(() => {});
+  }, []);
 
   const languages = [
     '', 'javascript', 'typescript', 'python', 'java', 'cpp', 'c',
@@ -207,9 +219,9 @@ export default function SnippetPage() {
                   onChange={(e) => setRetentionDays(parseInt(e.target.value) as RetentionDays)}
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
                 >
-                  {retentionOptions.map((days) => (
+                  {settings.retentionDays.map((days) => (
                     <option key={days} value={days}>
-                      {retentionLabel(days)}
+                      {retentionLabel(days as RetentionDays)}
                     </option>
                   ))}
                 </select>
@@ -232,9 +244,9 @@ export default function SnippetPage() {
                   }}
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
                 >
-                  {viewOptions.map((opt) => (
+                  {settings.maxDownloadsOptions.map((opt) => (
                     <option key={String(opt)} value={String(opt)}>
-                      {downloadLabel(opt)}
+                      {downloadLabel(opt as MaxDownloads)}
                     </option>
                   ))}
                 </select>

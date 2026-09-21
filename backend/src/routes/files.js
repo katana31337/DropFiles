@@ -2,28 +2,21 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs/promises';
-import pool from '../config/database.js';
 import { config } from '../config/app.js';
 import { getAppConfig } from '../config/settings.js';
-import { getStorage } from '../services/storage/index.js';
-import { generateShortLink, generateStorageFilename } from '../utils/shortLink.js';
-import { hashPassword, verifyPassword } from '../utils/hash.js';
+import { fileService } from '../services/FileService.js';
 import { requireSession } from '../middleware/session.js';
 import { validateFile } from '../middleware/validateFile.js';
 import { rateLimit } from '../middleware/rateLimit.js';
 
 export const filesRouter = Router();
 
-// Multer с diskStorage (файлы пишутся на диск, не в RAM)
+// Multer с diskStorage
 const tempDir = path.join(config.storage.datastorePath, 'temp');
-
-// Создаём temp директорию при старте
 fs.mkdir(tempDir, { recursive: true }).catch(console.error);
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, tempDir);
-  },
+  destination: (req, file, cb) => cb(null, tempDir),
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}_${Math.random().toString(36).substring(7)}`;
     cb(null, `${uniqueSuffix}_${file.originalname}`);
@@ -33,21 +26,19 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 200 * 1024 * 1024, // 200MB хард-лимит (реальный лимит из БД проверяется в validateFile)
+    fileSize: 200 * 1024 * 1024,
     files: 1,
   },
 });
 
-// Rate limiting для загрузки
 const uploadLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 5, // TODO: читать из БД
+  max: 5,
   keyGenerator: (req) => `upload:${req.session?.id || req.ip}`,
 });
 
 /**
  * POST /api/files/upload
- * Загрузка файла с транзакцией и diskStorage
  */
 filesRouter.post(
   '/upload',
@@ -56,7 +47,6 @@ filesRouter.post(
   upload.single('file'),
   validateFile,
   async (req, res) => {
-    const client = await pool.connect();
     let tempFilePath = null;
 
     try {
@@ -65,13 +55,12 @@ filesRouter.post(
       }
 
       tempFilePath = req.file.path;
-
       const { retentionDays, maxDownloads, password } = req.body;
 
       // Получаем настройки из БД
       const appConfig = await getAppConfig();
 
-      // Валидация параметров
+      // Валидация retentionDays
       if (!appConfig.files.retentionDays.includes(parseInt(retentionDays))) {
         return res.status(400).json({ error: 'Invalid retention days' });
       }
@@ -81,140 +70,57 @@ filesRouter.post(
         return res.status(400).json({ error: 'Invalid max downloads' });
       }
 
-      // === НАЧИНАЕМ ТРАНЗАКЦИЮ ===
-      await client.query('BEGIN');
-
-      // Генерируем уникальную короткую ссылку
-      const shortLink = await generateUniqueShortLink(client);
-
-      // Сохраняем файл в хранилище (читаем из temp файла)
+      // Читаем файл из temp
       const fileBuffer = await fs.readFile(tempFilePath);
-      const storageService = getStorage();
-      const storageFilename = generateStorageFilename(req.file.originalname);
-      const storagePath = await storageService.save(
-        fileBuffer,
-        storageFilename,
-        req.file.mimetype
-      );
+      const file = {
+        buffer: fileBuffer,
+        originalname: req.file.originalname,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      };
 
-      try {
-        // Хэшируем пароль если есть
-        const passwordHash = password ? await hashPassword(password) : null;
+      // Используем сервис
+      const result = await fileService.upload(file, {
+        retentionDays,
+        maxDownloads,
+        password,
+      }, req.session.id);
 
-        // Вычисляем срок хранения
-        const days = parseInt(retentionDays);
-        const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+      // Удаляем temp файл
+      await fs.unlink(tempFilePath).catch(() => {});
+      tempFilePath = null;
 
-        // Сохраняем метаданные в БД
-        const result = await client.query(
-          `INSERT INTO files (
-            session_id, original_name, storage_path, file_size, mime_type,
-            short_link, password_hash, max_downloads, expires_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-          RETURNING id, short_link, original_name, file_size, expires_at, max_downloads, download_count, status`,
-          [
-            req.session.id,
-            req.file.originalname,
-            storagePath,
-            req.file.size,
-            req.file.mimetype,
-            shortLink,
-            passwordHash,
-            maxDl,
-            expiresAt,
-          ]
-        );
-
-        // === КОММИТИМ ТРАНЗАКЦИЮ ===
-        await client.query('COMMIT');
-
-        // Удаляем temp файл
-        await fs.unlink(tempFilePath).catch(() => {});
-        tempFilePath = null;
-
-        const file = result.rows[0];
-
-        res.json({
-          id: file.id,
-          shortLink: file.short_link,
-          name: file.original_name,
-          size: file.file_size,
-          downloadUrl: `/download/${file.short_link}`,
-          expiresAt: file.expires_at,
-          maxDownloads: file.max_downloads,
-          hasPassword: !!password,
-        });
-      } catch (dbError) {
-        // Если БД упала — удаляем уже сохранённый файл
-        await storageService.remove(storagePath).catch(() => {});
-        throw dbError;
-      }
+      res.json({
+        id: result.id,
+        shortLink: result.short_link,
+        name: result.original_name,
+        size: result.file_size,
+        downloadUrl: `/download/${result.short_link}`,
+        expiresAt: result.expires_at,
+        maxDownloads: result.max_downloads,
+        hasPassword: !!password,
+      });
     } catch (error) {
-      await client.query('ROLLBACK').catch(() => {});
-      
-      // Удаляем temp файл при ошибке
       if (tempFilePath) {
         await fs.unlink(tempFilePath).catch(() => {});
       }
-      
       console.error('Upload error:', error);
       res.status(500).json({ error: 'Upload failed' });
-    } finally {
-      client.release();
     }
   }
 );
-
-/**
- * Генерация уникальной короткой ссылки (с retry)
- */
-async function generateUniqueShortLink(client, maxRetries = 5) {
-  for (let i = 0; i < maxRetries; i++) {
-    const shortLink = generateShortLink();
-    const existing = await client.query(
-      'SELECT id FROM files WHERE short_link = $1',
-      [shortLink]
-    );
-    if (existing.rows.length === 0) {
-      return shortLink;
-    }
-  }
-  throw new Error('Failed to generate unique short link after retries');
-}
 
 /**
  * GET /api/files/:shortLink/info
  */
 filesRouter.get('/:shortLink/info', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, original_name, file_size, mime_type, short_link, 
-              password_hash, max_downloads, download_count, 
-              expires_at, status, created_at
-       FROM files WHERE short_link = $1`,
-      [req.params.shortLink]
-    );
-
-    if (result.rows.length === 0) {
+    const info = await fileService.getFileInfo(req.params.shortLink);
+    res.json(info);
+  } catch (error) {
+    if (error.message === 'File not found') {
       return res.status(404).json({ error: 'File not found' });
     }
-
-    const file = result.rows[0];
-    const isExpired = new Date(file.expires_at) < new Date();
-    const maxReached = file.max_downloads !== null && file.download_count >= file.max_downloads;
-
-    res.json({
-      name: file.original_name,
-      size: file.file_size,
-      mimeType: file.mime_type,
-      hasPassword: !!file.password_hash,
-      maxDownloads: file.max_downloads,
-      downloadCount: file.download_count,
-      expiresAt: file.expires_at,
-      status: isExpired ? 'expired' : maxReached ? 'max_downloads_reached' : file.status,
-      createdAt: file.created_at,
-    });
-  } catch (error) {
     console.error('File info error:', error);
     res.status(500).json({ error: 'Failed to get file info' });
   }
@@ -225,24 +131,12 @@ filesRouter.get('/:shortLink/info', async (req, res) => {
  */
 filesRouter.post('/:shortLink/verify-password', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT password_hash FROM files WHERE short_link = $1',
-      [req.params.shortLink]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-
-    const file = result.rows[0];
-
-    if (!file.password_hash) {
-      return res.json({ valid: true });
-    }
-
-    const isValid = await verifyPassword(req.body.password, file.password_hash);
+    const isValid = await fileService.verifyPassword(req.params.shortLink, req.body.password);
     res.json({ valid: isValid });
   } catch (error) {
+    if (error.message === 'File not found') {
+      return res.status(404).json({ error: 'File not found' });
+    }
     console.error('Password verify error:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
@@ -252,60 +146,32 @@ filesRouter.post('/:shortLink/verify-password', async (req, res) => {
  * GET /api/files/:shortLink/download
  */
 filesRouter.get('/:shortLink/download', async (req, res) => {
-  const client = await pool.connect();
-  
   try {
-    const result = await client.query(
-      `SELECT id, original_name, storage_path, file_size, mime_type,
-              password_hash, max_downloads, download_count, expires_at, status
-       FROM files WHERE short_link = $1
-       FOR UPDATE`,
-      [req.params.shortLink]
-    );
+    const { file, stream } = await fileService.download(req.params.shortLink);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'File not found' });
-    }
-
-    const file = result.rows[0];
-
-    if (new Date(file.expires_at) < new Date()) {
-      return res.status(410).json({ error: 'File expired' });
-    }
-
-    if (file.max_downloads !== null && file.download_count >= file.max_downloads) {
-      return res.status(410).json({ error: 'Download limit reached' });
-    }
-
-    // Атомарное увеличение счётчика
-    await client.query(
-      'UPDATE files SET download_count = download_count + 1 WHERE id = $1',
-      [file.id]
-    );
-
-    await client.query('COMMIT');
-
-    // Отдаём файл
-    const storageService = getStorage();
-    
-    if (storageService.getStream) {
-      const stream = await storageService.getStream(file.storage_path);
+    if (stream) {
       res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_name)}"`);
       res.setHeader('Content-Length', file.file_size);
       stream.pipe(res);
     } else {
-      const buffer = await storageService.get(file.storage_path);
+      const buffer = await getStorage().get(file.storage_path);
       res.setHeader('Content-Type', file.mime_type || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.original_name)}"`);
       res.send(buffer);
     }
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {});
+    if (error.message === 'File not found') {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    if (error.message === 'File expired') {
+      return res.status(410).json({ error: 'File expired' });
+    }
+    if (error.message === 'Download limit reached') {
+      return res.status(410).json({ error: 'Download limit reached' });
+    }
     console.error('Download error:', error);
     res.status(500).json({ error: 'Download failed' });
-  } finally {
-    client.release();
   }
 });
 
@@ -314,35 +180,7 @@ filesRouter.get('/:shortLink/download', async (req, res) => {
  */
 filesRouter.get('/history', requireSession, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, original_name, file_size, mime_type, short_link,
-              max_downloads, download_count, expires_at, status, created_at,
-              CASE WHEN password_hash IS NOT NULL THEN true ELSE false END as has_password
-       FROM files 
-       WHERE session_id = $1
-       ORDER BY created_at DESC`,
-      [req.session.id]
-    );
-
-    const files = result.rows.map(file => {
-      const isExpired = new Date(file.expires_at) < new Date();
-      const maxReached = file.max_downloads !== null && file.download_count >= file.max_downloads;
-      
-      return {
-        id: file.id,
-        name: file.original_name,
-        size: file.file_size,
-        mimeType: file.mime_type,
-        shortLink: file.short_link,
-        maxDownloads: file.max_downloads,
-        downloadCount: file.download_count,
-        expiresAt: file.expires_at,
-        status: isExpired ? 'expired' : maxReached ? 'max_downloads_reached' : file.status,
-        hasPassword: file.has_password,
-        createdAt: file.created_at,
-      };
-    });
-
+    const files = await fileService.getSessionHistory(req.session.id);
     res.json({ files });
   } catch (error) {
     console.error('History error:', error);
@@ -354,37 +192,14 @@ filesRouter.get('/history', requireSession, async (req, res) => {
  * DELETE /api/files/:id
  */
 filesRouter.delete('/:id', requireSession, async (req, res) => {
-  const client = await pool.connect();
-  
   try {
-    await client.query('BEGIN');
-
-    const result = await client.query(
-      'SELECT storage_path FROM files WHERE id = $1 AND session_id = $2 FOR UPDATE',
-      [req.params.id, req.session.id]
-    );
-
-    if (result.rows.length === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'File not found or access denied' });
-    }
-
-    const file = result.rows[0];
-
-    // Удаляем из хранилища
-    const storageService = getStorage();
-    await storageService.remove(file.storage_path);
-
-    // Удаляем из БД
-    await client.query('DELETE FROM files WHERE id = $1', [req.params.id]);
-
-    await client.query('COMMIT');
+    await fileService.delete(req.params.id, req.session.id);
     res.json({ success: true });
   } catch (error) {
-    await client.query('ROLLBACK').catch(() => {});
+    if (error.message === 'File not found or access denied') {
+      return res.status(404).json({ error: error.message });
+    }
     console.error('Delete error:', error);
     res.status(500).json({ error: 'Failed to delete file' });
-  } finally {
-    client.release();
   }
 });

@@ -24,6 +24,8 @@ export default function AdminDashboard() {
   const [username, setUsername] = useState('');
 
   const [maxFileSizeMB, setMaxFileSizeMB] = useState(100);
+  const [retentionDays, setRetentionDays] = useState('1,3,5,7,20,30');
+  const [maxDownloadsOptions, setMaxDownloadsOptions] = useState('1,2,5,7,unlimited');
   const [sessionDurationDays, setSessionDurationDays] = useState(7);
   const [uploadRateLimit, setUploadRateLimit] = useState(5);
   const [apiRateLimit, setApiRateLimit] = useState(60);
@@ -47,6 +49,10 @@ export default function AdminDashboard() {
       const data = await getAdminSettings(token);
       setSettings(data);
       setMaxFileSizeMB(data.files.maxFileSizeMB);
+      setRetentionDays(data.files.retentionDays.join(','));
+      setMaxDownloadsOptions(
+        data.files.maxDownloadsOptions.map(opt => opt === null ? 'unlimited' : opt).join(',')
+      );
       setSessionDurationDays(data.session.durationDays);
       setUploadRateLimit(data.rateLimit.uploadPerMinute);
       setApiRateLimit(data.rateLimit.apiPerMinute);
@@ -78,16 +84,19 @@ export default function AdminDashboard() {
 
     try {
       const data = await updateAdminSettings(token, {
-        files: { maxFileSizeMB },
-        session: { durationDays: sessionDurationDays },
-        rateLimit: { uploadPerMinute: uploadRateLimit, apiPerMinute: apiRateLimit },
+        max_file_size_mb: maxFileSizeMB,
+        retention_days: retentionDays,
+        max_downloads_options: maxDownloadsOptions,
+        session_duration_days: sessionDurationDays,
+        upload_rate_limit: uploadRateLimit,
+        api_rate_limit: apiRateLimit,
       } as any);
 
       setSettings(data);
       setMessage('Settings saved successfully');
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
-      setMessage('Failed to save settings');
+    } catch (err: any) {
+      setMessage(err.message || 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -180,6 +189,38 @@ export default function AdminDashboard() {
                 min={1}
                 max={365}
               />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-slate-700 text-sm mb-2">
+                Retention Days (диапазоны хранения файлов)
+              </label>
+              <input
+                type="text"
+                value={retentionDays}
+                onChange={(e) => setRetentionDays(e.target.value)}
+                placeholder="1,3,5,7,20,30"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+              />
+              <p className="text-slate-400 text-xs mt-1">
+                Формат: число,число,число (например: 1,3,7,14,30). Числа от 1 до 365.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-slate-700 text-sm mb-2">
+                Max Downloads Options (опции лимита скачиваний)
+              </label>
+              <input
+                type="text"
+                value={maxDownloadsOptions}
+                onChange={(e) => setMaxDownloadsOptions(e.target.value)}
+                placeholder="1,2,5,7,unlimited"
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+              />
+              <p className="text-slate-400 text-xs mt-1">
+                Формат: число,число,unlimited (например: 1,5,10,unlimited). Числа от 1 до 10000.
+              </p>
             </div>
 
             <div>

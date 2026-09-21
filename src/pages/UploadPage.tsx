@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,13 +14,19 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { uploadFile } from '../api/client';
+import { uploadFile, getPublicSettings } from '../api/client';
 import { RetentionDays, MaxDownloads } from '../types';
 import { retentionLabel, downloadLabel, formatFileSize } from '../utils/format';
+import type { PublicSettings } from '../api/client';
 
-const MAX_FILE_SIZE_MB = 100;
+const DEFAULT_SETTINGS: PublicSettings = {
+  retentionDays: [1, 3, 5, 7, 20, 30],
+  maxDownloadsOptions: [1, 2, 5, 7, 'unlimited'],
+  maxFileSizeMB: 100,
+};
 
 export default function UploadPage() {
+  const [settings, setSettings] = useState<PublicSettings>(DEFAULT_SETTINGS);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [retentionDays, setRetentionDays] = useState<RetentionDays>(7);
   const [maxDownloads, setMaxDownloads] = useState<MaxDownloads>('unlimited');
@@ -32,28 +38,42 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const retentionOptions: RetentionDays[] = [1, 3, 5, 7, 20, 30];
-  const downloadOptions: MaxDownloads[] = [1, 2, 5, 7, 'unlimited'];
+  // Загружаем настройки из API
+  useEffect(() => {
+    getPublicSettings()
+      .then(setSettings)
+      .catch(() => {}); // Используем дефолтные при ошибке
+  }, []);
+
+  // Устанавливаем дефолтные значения из настроек
+  useEffect(() => {
+    if (settings.retentionDays.length > 0) {
+      const defaultRetention = settings.retentionDays.includes(7) 
+        ? 7 
+        : settings.retentionDays[0];
+      setRetentionDays(defaultRetention as RetentionDays);
+    }
+  }, [settings]);
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       setError(null);
       const file = acceptedFiles[0];
       if (file) {
-        if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-          setError(`Файл слишком большой. Максимум: ${MAX_FILE_SIZE_MB} MB`);
+        if (file.size > settings.maxFileSizeMB * 1024 * 1024) {
+          setError(`Файл слишком большой. Максимум: ${settings.maxFileSizeMB} MB`);
           return;
         }
         setSelectedFile(file);
       }
     },
-    []
+    [settings.maxFileSizeMB]
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     maxFiles: 1,
-    maxSize: MAX_FILE_SIZE_MB * 1024 * 1024,
+    maxSize: settings.maxFileSizeMB * 1024 * 1024,
   });
 
   const handleUpload = async () => {
@@ -187,7 +207,7 @@ export default function UploadPage() {
                   <p className="text-slate-600 mb-2">
                     Перетащите файл сюда или нажмите для выбора
                   </p>
-                  <p className="text-slate-400 text-sm">Максимум {MAX_FILE_SIZE_MB} MB</p>
+                  <p className="text-slate-400 text-sm">Максимум {settings.maxFileSizeMB} MB</p>
                 </>
               )}
             </div>
@@ -219,9 +239,9 @@ export default function UploadPage() {
                   onChange={(e) => setRetentionDays(parseInt(e.target.value) as RetentionDays)}
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
                 >
-                  {retentionOptions.map((days) => (
+                  {settings.retentionDays.map((days) => (
                     <option key={days} value={days}>
-                      {retentionLabel(days)}
+                      {retentionLabel(days as RetentionDays)}
                     </option>
                   ))}
                 </select>
@@ -244,9 +264,9 @@ export default function UploadPage() {
                   }}
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2.5 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer hover:border-slate-400 transition-colors"
                 >
-                  {downloadOptions.map((opt) => (
+                  {settings.maxDownloadsOptions.map((opt) => (
                     <option key={String(opt)} value={String(opt)}>
-                      {downloadLabel(opt)}
+                      {downloadLabel(opt as MaxDownloads)}
                     </option>
                   ))}
                 </select>
@@ -306,7 +326,6 @@ export default function UploadPage() {
                   : 'bg-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             >
-              {/* Progress bar background */}
               {isUploading && (
                 <motion.div
                   className="absolute inset-0 bg-indigo-700"
@@ -335,5 +354,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
-

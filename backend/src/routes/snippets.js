@@ -1,15 +1,12 @@
 import { Router } from 'express';
-import pool from '../config/database.js';
 import { getAppConfig } from '../config/settings.js';
-import { generateShortLink } from '../utils/shortLink.js';
-import { hashPassword, verifyPassword } from '../utils/hash.js';
+import { snippetService } from '../services/SnippetService.js';
 import { requireSession } from '../middleware/session.js';
 
 export const snippetsRouter = Router();
 
 /**
  * POST /api/snippets
- * Создать текстовый сниппет
  */
 snippetsRouter.post('/', requireSession, async (req, res) => {
   try {
@@ -26,9 +23,8 @@ snippetsRouter.post('/', requireSession, async (req, res) => {
     // Получаем настройки из БД
     const appConfig = await getAppConfig();
 
-    // Валидация параметров
-    const days = parseInt(retentionDays) || 7;
-    if (!appConfig.files.retentionDays.includes(days)) {
+    // Валидация retentionDays
+    if (!appConfig.files.retentionDays.includes(parseInt(retentionDays))) {
       return res.status(400).json({ error: 'Invalid retention days' });
     }
 
@@ -37,59 +33,23 @@ snippetsRouter.post('/', requireSession, async (req, res) => {
       return res.status(400).json({ error: 'Invalid max views' });
     }
 
-    // Генерируем уникальную короткую ссылку
-    let shortLink;
-    let isUnique = false;
-    let retries = 0;
-    while (!isUnique && retries < 5) {
-      shortLink = generateShortLink();
-      const existing = await pool.query(
-        'SELECT id FROM text_snippets WHERE short_link = $1',
-        [shortLink]
-      );
-      isUnique = existing.rows.length === 0;
-      retries++;
-    }
-
-    if (!isUnique) {
-      return res.status(500).json({ error: 'Failed to generate unique link' });
-    }
-
-    // Хэшируем пароль если есть
-    const passwordHash = password ? await hashPassword(password) : null;
-
-    // Вычисляем срок хранения
-    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
-
-    // Сохраняем в БД
-    const result = await pool.query(
-      `INSERT INTO text_snippets (
-        session_id, short_link, content, title, language, 
-        password_hash, max_views, expires_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING id, short_link, title, language, expires_at, max_views, view_count`,
-      [
-        req.session.id,
-        shortLink,
-        content,
-        title || null,
-        language || null,
-        passwordHash,
-        maxV,
-        expiresAt,
-      ]
-    );
-
-    const snippet = result.rows[0];
+    // Используем сервис
+    const result = await snippetService.create(content, {
+      title,
+      language,
+      retentionDays,
+      maxViews,
+      password,
+    }, req.session.id);
 
     res.json({
-      id: snippet.id,
-      shortLink: snippet.short_link,
-      title: snippet.title,
-      language: snippet.language,
-      viewUrl: `/text/${snippet.short_link}`,
-      expiresAt: snippet.expires_at,
-      maxViews: snippet.max_views,
+      id: result.id,
+      shortLink: result.short_link,
+      title: result.title,
+      language: result.language,
+      viewUrl: `/text/${result.short_link}`,
+      expiresAt: result.expires_at,
+      maxViews: result.max_views,
       hasPassword: !!password,
     });
   } catch (error) {
@@ -100,43 +60,21 @@ snippetsRouter.post('/', requireSession, async (req, res) => {
 
 /**
  * GET /api/snippets/:shortLink
- * Получить сниппет
  */
 snippetsRouter.get('/:shortLink', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, content, title, language, password_hash, 
-              max_views, view_count, expires_at, status
-       FROM text_snippets WHERE short_link = $1`,
-      [req.params.shortLink]
-    );
-
-    if (result.rows.length === 0) {
+    const snippet = await snippetService.getSnippet(req.params.shortLink);
+    res.json(snippet);
+  } catch (error) {
+    if (error.message === 'Snippet not found') {
       return res.status(404).json({ error: 'Snippet not found' });
     }
-
-    const snippet = result.rows[0];
-
-    // Проверка срока
-    if (new Date(snippet.expires_at) < new Date()) {
+    if (error.message === 'Snippet expired') {
       return res.status(410).json({ error: 'Snippet expired' });
     }
-
-    // Проверка лимита просмотров
-    if (snippet.max_views !== null && snippet.view_count >= snippet.max_views) {
+    if (error.message === 'View limit reached') {
       return res.status(410).json({ error: 'View limit reached' });
     }
-
-    res.json({
-      content: snippet.content,
-      title: snippet.title,
-      language: snippet.language,
-      hasPassword: !!snippet.password_hash,
-      maxViews: snippet.max_views,
-      viewCount: snippet.view_count,
-      expiresAt: snippet.expires_at,
-    });
-  } catch (error) {
     console.error('Get snippet error:', error);
     res.status(500).json({ error: 'Failed to get snippet' });
   }
@@ -144,28 +82,15 @@ snippetsRouter.get('/:shortLink', async (req, res) => {
 
 /**
  * POST /api/snippets/:shortLink/verify-password
- * Проверить пароль для сниппета
  */
 snippetsRouter.post('/:shortLink/verify-password', async (req, res) => {
   try {
-    const result = await pool.query(
-      'SELECT password_hash FROM text_snippets WHERE short_link = $1',
-      [req.params.shortLink]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Snippet not found' });
-    }
-
-    const snippet = result.rows[0];
-
-    if (!snippet.password_hash) {
-      return res.json({ valid: true });
-    }
-
-    const isValid = await verifyPassword(req.body.password, snippet.password_hash);
+    const isValid = await snippetService.verifyPassword(req.params.shortLink, req.body.password);
     res.json({ valid: isValid });
   } catch (error) {
+    if (error.message === 'Snippet not found') {
+      return res.status(404).json({ error: 'Snippet not found' });
+    }
     console.error('Password verify error:', error);
     res.status(500).json({ error: 'Verification failed' });
   }
@@ -173,15 +98,10 @@ snippetsRouter.post('/:shortLink/verify-password', async (req, res) => {
 
 /**
  * POST /api/snippets/:shortLink/view
- * Увеличить счётчик просмотров
  */
 snippetsRouter.post('/:shortLink/view', async (req, res) => {
   try {
-    await pool.query(
-      'UPDATE text_snippets SET view_count = view_count + 1 WHERE short_link = $1',
-      [req.params.shortLink]
-    );
-
+    await snippetService.incrementView(req.params.shortLink);
     res.json({ success: true });
   } catch (error) {
     console.error('View count error:', error);
@@ -191,38 +111,10 @@ snippetsRouter.post('/:shortLink/view', async (req, res) => {
 
 /**
  * GET /api/snippets/history
- * Получить историю сниппетов текущей сессии
  */
 snippetsRouter.get('/history', requireSession, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT id, short_link, title, language, max_views, view_count, 
-              expires_at, status, created_at,
-              CASE WHEN password_hash IS NOT NULL THEN true ELSE false END as has_password
-       FROM text_snippets 
-       WHERE session_id = $1
-       ORDER BY created_at DESC`,
-      [req.session.id]
-    );
-
-    const snippets = result.rows.map(snippet => {
-      const isExpired = new Date(snippet.expires_at) < new Date();
-      const maxReached = snippet.max_views !== null && snippet.view_count >= snippet.max_views;
-
-      return {
-        id: snippet.id,
-        shortLink: snippet.short_link,
-        title: snippet.title,
-        language: snippet.language,
-        maxViews: snippet.max_views,
-        viewCount: snippet.view_count,
-        expiresAt: snippet.expires_at,
-        status: isExpired ? 'expired' : maxReached ? 'max_views_reached' : snippet.status,
-        hasPassword: snippet.has_password,
-        createdAt: snippet.created_at,
-      };
-    });
-
+    const snippets = await snippetService.getSessionHistory(req.session.id);
     res.json({ snippets });
   } catch (error) {
     console.error('History error:', error);

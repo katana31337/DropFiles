@@ -274,6 +274,23 @@ export function deleteSession(): Promise<{ success: boolean }> {
 }
 
 // ============================================
+// PUBLIC SETTINGS API
+// ============================================
+
+export interface PublicSettings {
+  retentionDays: number[];
+  maxDownloadsOptions: (number | 'unlimited')[];
+  maxFileSizeMB: number;
+}
+
+/**
+ * Получить публичные настройки (опции для UI)
+ */
+export function getPublicSettings(): Promise<PublicSettings> {
+  return apiRequest('/settings/public');
+}
+
+// ============================================
 // ADMIN API
 // ============================================
 
