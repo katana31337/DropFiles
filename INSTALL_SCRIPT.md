@@ -189,7 +189,7 @@ sudo ./install.sh
 
 ```bash
 # Остановить контейнеры
-docker-compose down
+docker compose down
 
 # Удалить данные
 sudo rm -rf /datastore/*
@@ -220,13 +220,19 @@ sudo sh get-docker.sh
 ### Ошибка: Docker Compose не установлен
 
 ```bash
-# Ubuntu/Debian
+# Ubuntu/Debian - установить плагин Docker Compose v2
+sudo apt-get update
 sudo apt-get install docker-compose-plugin
 
-# Или отдельно
-sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-sudo chmod +x /usr/local/bin/docker-compose
+# Проверить установку
+docker compose version
+
+# Если не работает, установить вручную
+sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/lib/docker/cli-plugins/docker-compose
+sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 ```
+
+**Важно:** Используется `docker compose` (v2, плагин), а не `docker-compose` (v1, устарел).
 
 ### Ошибка: Permission denied
 

@@ -169,10 +169,10 @@ npm run test:watch       # Frontend тесты в watch mode
 npm run typecheck        # Проверить TypeScript типы
 
 # Docker
-docker-compose ps        # Статус контейнеров
-docker-compose logs -f   # Логи в реальном времени
-docker-compose restart   # Перезапуск всех сервисов
-docker-compose down      # Остановка всех сервисов
+docker compose ps        # Статус контейнеров
+docker compose logs -f   # Логи в реальном времени
+docker compose restart   # Перезапуск всех сервисов
+docker compose down      # Остановка всех сервисов
 ```
 
 📖 Подробная документация по установке: [INSTALL.md](./INSTALL.md)

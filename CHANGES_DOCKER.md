@@ -148,15 +148,15 @@ location /uploads {
 Если нужно пересобрать frontend:
 
 ```bash
-docker-compose build frontend
-docker-compose up -d frontend
+docker compose build frontend
+docker compose up -d frontend
 ```
 
 Или пересобрать всё:
 
 ```bash
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
 
 ## Откат
@@ -175,17 +175,17 @@ docker-compose up -d
 
 ```bash
 # Собрать образы
-docker-compose build
+docker compose build
 
 # Запустить контейнеры
-docker-compose up -d
+docker compose up -d
 
 # Проверить статус
-docker-compose ps
+docker compose ps
 
 # Посмотреть логи
-docker-compose logs -f frontend
-docker-compose logs -f nginx
+docker compose logs -f frontend
+docker compose logs -f nginx
 
 # Открыть в браузере
 # https://your-domain.com
