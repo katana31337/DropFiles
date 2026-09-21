@@ -58,35 +58,51 @@ npm run test:all
 
 Подробнее в [TESTING.md](./TESTING.md)
 
-## 🚀 Запуск
+## 🚀 Установка
 
-### 1. База данных
+### Автоматическая установка (рекомендуется)
 
 ```bash
-# Установите PostgreSQL и создайте БД
-createdb filedrop
+# Запустить скрипт установки
+chmod +x install.sh
+sudo ./install.sh
 ```
 
-### 2. Backend
+Скрипт:
+- Спросит тип сертификата (self-signed или Let's Encrypt)
+- Спросит домен
+- Сгенерирует безопасные пароли
+- Создаст `/datastore` для файлов
+- Сгенерирует `docker-compose.yml` и `nginx.conf`
+- Соберёт и запустит все контейнеры
+
+После установки вы получите:
+- URL сервиса (https://your-domain.com)
+- Секретный URL админки
+- Данные для подключения к БД
+- Файл `INSTALL_INFO.txt` с полной информацией
+
+### Ручная установка (для разработки)
 
 ```bash
+# 1. PostgreSQL
+createdb filedrop
+
+# 2. Backend
 cd backend
 npm install
 cp .env.example .env
-# Настройте .env (параметры PostgreSQL)
+# Настройте .env (параметры PostgreSQL, ADMIN_SECRET_PATH, JWT_SECRET)
 npm run dev
-```
 
-Сервер запустится на `http://localhost:3001`
-
-### 3. Frontend
-
-```bash
+# 3. Frontend
 npm install
 npm run dev
 ```
 
-Фронтенд на `http://localhost:5173`
+Откройте:
+- Frontend: http://localhost:5173
+- Admin setup: http://localhost:5173/my-secret-admin-xyz789/setup
 
 ## 🔌 API Endpoints
 
@@ -130,6 +146,10 @@ npm run dev
 ## 💻 Полезные команды
 
 ```bash
+# Установка
+chmod +x install.sh      # Сделать скрипт исполняемым
+sudo ./install.sh        # Запустить установку
+
 # Разработка
 npm run dev              # Запустить frontend в dev mode
 cd backend && npm run dev  # Запустить backend в dev mode
@@ -145,4 +165,12 @@ npm run test:watch       # Frontend тесты в watch mode
 
 # Проверка типов
 npm run typecheck        # Проверить TypeScript типы
+
+# Docker
+docker-compose ps        # Статус контейнеров
+docker-compose logs -f   # Логи в реальном времени
+docker-compose restart   # Перезапуск всех сервисов
+docker-compose down      # Остановка всех сервисов
 ```
+
+📖 Подробная документация по установке: [INSTALL.md](./INSTALL.md)
