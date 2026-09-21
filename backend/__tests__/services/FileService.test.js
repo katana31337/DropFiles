@@ -1,25 +1,43 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 
+// Создаём моки на верхнем уровне
+const mockStorageSave = jest.fn();
+const mockStorageRemove = jest.fn();
+const mockStorageGet = jest.fn();
+const mockStorageGetStream = jest.fn();
+
+const mockFileRepository = {
+  create: jest.fn(),
+  findByShortLink: jest.fn(),
+  findByShortLinkForUpdate: jest.fn(),
+  incrementDownloadCount: jest.fn(),
+  delete: jest.fn(),
+  findBySessionId: jest.fn(),
+  isShortLinkUnique: jest.fn(),
+  findExpired: jest.fn(),
+};
+
+const mockClient = {
+  query: jest.fn(),
+  release: jest.fn(),
+};
+
+const mockPool = {
+  connect: jest.fn(() => mockClient),
+  query: jest.fn(),
+};
+
 // Мокаем зависимости
 jest.unstable_mockModule('../../src/repositories/FileRepository.js', () => ({
-  fileRepository: {
-    create: jest.fn(),
-    findByShortLink: jest.fn(),
-    findByShortLinkForUpdate: jest.fn(),
-    incrementDownloadCount: jest.fn(),
-    delete: jest.fn(),
-    findBySessionId: jest.fn(),
-    isShortLinkUnique: jest.fn(),
-    findExpired: jest.fn(),
-  },
+  fileRepository: mockFileRepository,
 }));
 
 jest.unstable_mockModule('../../src/services/storage/index.js', () => ({
   getStorage: () => ({
-    save: jest.fn(),
-    get: jest.fn(),
-    getStream: jest.fn(),
-    remove: jest.fn(),
+    save: mockStorageSave,
+    get: mockStorageGet,
+    getStream: mockStorageGetStream,
+    remove: mockStorageRemove,
   }),
 }));
 
@@ -33,33 +51,19 @@ jest.unstable_mockModule('../../src/utils/hash.js', () => ({
   verifyPassword: jest.fn((pwd, hash) => Promise.resolve(hash === `hashed_${pwd}`)),
 }));
 
-const mockClient = {
-  query: jest.fn(),
-  release: jest.fn(),
-};
-
-const mockPool = {
-  connect: jest.fn(() => mockClient),
-  query: jest.fn(),
-};
-
 jest.unstable_mockModule('../../src/config/database.js', () => ({
   default: mockPool,
 }));
 
 const { fileRepository } = await import('../../src/repositories/FileRepository.js');
 const { getStorage } = await import('../../src/services/storage/index.js');
-const { generateShortLink } = await import('../../src/utils/shortLink.js');
-const { hashPassword } = await import('../../src/utils/hash.js');
 const { FileService } = await import('../../src/services/FileService.js');
 
 describe('FileService - сервис работы с файлами', () => {
   let fileService;
-  let mockStorage;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStorage = getStorage();
     fileService = new FileService();
     
     // Сбрасываем моки клиента БД
@@ -85,7 +89,7 @@ describe('FileService - сервис работы с файлами', () => {
       };
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
-      mockStorage.save.mockResolvedValue('2024/01/15/test.txt');
+      mockStorageSave.mockResolvedValue('2024/01/15/test.txt');
       fileRepository.create.mockResolvedValue({
         id: 'file-1',
         short_link: 'test1234',
@@ -96,7 +100,7 @@ describe('FileService - сервис работы с файлами', () => {
 
       const result = await fileService.upload(file, options, 'session-1');
 
-      expect(mockStorage.save).toHaveBeenCalled();
+      expect(mockStorageSave).toHaveBeenCalled();
       expect(fileRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           sessionId: 'session-1',
@@ -122,7 +126,7 @@ describe('FileService - сервис работы с файлами', () => {
       };
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
-      mockStorage.save.mockResolvedValue('path/to/file');
+      mockStorageSave.mockResolvedValue('path/to/file');
       fileRepository.create.mockResolvedValue({ id: '1' });
 
       await fileService.upload(file, options, 'session-1');
@@ -144,14 +148,14 @@ describe('FileService - сервис работы с файлами', () => {
       };
 
       fileRepository.isShortLinkUnique.mockResolvedValue(true);
-      mockStorage.save.mockResolvedValue('path/to/file');
+      mockStorageSave.mockResolvedValue('path/to/file');
       fileRepository.create.mockRejectedValue(new Error('DB error'));
 
       await expect(
         fileService.upload(file, { retentionDays: '7', maxDownloads: '*' }, 'session-1')
       ).rejects.toThrow('DB error');
 
-      expect(mockStorage.remove).toHaveBeenCalledWith('path/to/file');
+      expect(mockStorageRemove).toHaveBeenCalledWith('path/to/file');
     });
   });
 
