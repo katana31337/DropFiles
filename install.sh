@@ -72,31 +72,36 @@ echo "  1) Self-signed (для локальной сети / fileshare.local)"
 echo "  2) Let's Encrypt (для публичного домена)"
 echo ""
 
-read -p "Ваш выбор [1/2]: " cert_choice
-
-case $cert_choice in
-    1)
-        CERT_TYPE="self-signed"
-        echo ""
-        read -p "Введите домен [fileshare.local]: " DOMAIN
-        DOMAIN=${DOMAIN:-fileshare.local}
-        ;;
-    2)
-        CERT_TYPE="letsencrypt"
-        echo ""
-        read -p "Введите ваш домен (например, filedrop.example.com): " DOMAIN
-        if [ -z "$DOMAIN" ]; then
-            error "Домен обязателен для Let's Encrypt"
-        fi
-        read -p "Введите email для Let's Encrypt: " EMAIL
-        if [ -z "$EMAIL" ]; then
-            error "Email обязателен для Let's Encrypt"
-        fi
-        ;;
-    *)
-        error "Неверный выбор"
-        ;;
-esac
+while true; do
+    read -p "Ваш выбор [1/2]: " cert_choice
+    
+    case $cert_choice in
+        1)
+            CERT_TYPE="self-signed"
+            echo ""
+            read -p "Введите домен [fileshare.local]: " DOMAIN
+            DOMAIN=${DOMAIN:-fileshare.local}
+            break
+            ;;
+        2)
+            CERT_TYPE="letsencrypt"
+            echo ""
+            read -p "Введите ваш домен (например, filedrop.example.com): " DOMAIN
+            if [ -z "$DOMAIN" ]; then
+                error "Домен обязателен для Let's Encrypt"
+            fi
+            read -p "Введите email для Let's Encrypt: " EMAIL
+            if [ -z "$EMAIL" ]; then
+                error "Email обязателен для Let's Encrypt"
+            fi
+            break
+            ;;
+        *)
+            warning "Пожалуйста, введите номер пункта (1 или 2), а не текст"
+            echo ""
+            ;;
+    esac
+done
 
 success "Тип сертификата: $CERT_TYPE"
 success "Домен: $DOMAIN"
