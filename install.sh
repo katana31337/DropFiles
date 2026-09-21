@@ -74,29 +74,31 @@ echo ""
 
 read -p "Ваш выбор [1/2]: " cert_choice
 
-case $cert_choice in
-    1)
-        CERT_TYPE="self-signed"
-        echo ""
-        read -p "Введите домен [fileshare.local]: " DOMAIN
-        DOMAIN=${DOMAIN:-fileshare.local}
-        ;;
-    2)
-        CERT_TYPE="letsencrypt"
-        echo ""
-        read -p "Введите ваш домен (например, filedrop.example.com): " DOMAIN
-        if [ -z "$DOMAIN" ]; then
-            error "Домен обязателен для Let's Encrypt"
-        fi
-        read -p "Введите email для Let's Encrypt: " EMAIL
-        if [ -z "$EMAIL" ]; then
-            error "Email обязателен для Let's Encrypt"
-        fi
-        ;;
-    *)
-        error "Неверный выбор"
-        ;;
-esac
+# Проверяем, ввёл ли пользователь домен напрямую
+if [[ "$cert_choice" == *"."* ]]; then
+    # Это домен, используем self-signed
+    CERT_TYPE="self-signed"
+    DOMAIN="$cert_choice"
+    success "Используем self-signed сертификат для домена: $DOMAIN"
+elif [ "$cert_choice" == "1" ]; then
+    CERT_TYPE="self-signed"
+    echo ""
+    read -p "Введите домен [fileshare.local]: " DOMAIN
+    DOMAIN=${DOMAIN:-fileshare.local}
+elif [ "$cert_choice" == "2" ]; then
+    CERT_TYPE="letsencrypt"
+    echo ""
+    read -p "Введите ваш домен (например, filedrop.example.com): " DOMAIN
+    if [ -z "$DOMAIN" ]; then
+        error "Домен обязателен для Let's Encrypt"
+    fi
+    read -p "Введите email для Let's Encrypt: " EMAIL
+    if [ -z "$EMAIL" ]; then
+        error "Email обязателен для Let's Encrypt"
+    fi
+else
+    error "Неверный выбор. Введите 1, 2 или доменное имя (например, dropfiles.local)"
+fi
 
 success "Тип сертификата: $CERT_TYPE"
 success "Домен: $DOMAIN"
