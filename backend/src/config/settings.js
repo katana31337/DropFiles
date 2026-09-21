@@ -174,8 +174,8 @@ export function validateRetentionDays(value) {
     return { valid: false, error: 'Value must be a string' };
   }
 
-  // Регулярное выражение: одна или более групп "число" разделённых запятыми
-  const pattern = /^\d+(,\d+)*$/;
+  // Регулярное выражение: одна или более групп "число" разделённых запятыми (с возможными пробелами)
+  const pattern = /^\d+(\s*,\s*\d+)*$/;
   
   if (!pattern.test(value.trim())) {
     return { 
@@ -207,7 +207,7 @@ export function validateMaxDownloadsOptions(value) {
     return { valid: false, error: 'Value must be a string' };
   }
 
-  const pattern = /^(\d+|unlimited)(,(\d+|unlimited))*$/;
+  const pattern = /^(\d+|unlimited)(\s*,\s*(\d+|unlimited))*$/;
   
   if (!pattern.test(value.trim())) {
     return { 
