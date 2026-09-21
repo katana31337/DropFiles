@@ -43,6 +43,21 @@ Frontend (React + Vite + Tailwind)  →  Backend (Node.js + Express)  →  Postg
 └── README.md
 ```
 
+## 🧪 Тестирование
+
+```bash
+# Frontend тесты
+npm run test:front
+
+# Backend тесты
+npm run test:back
+
+# Все тесты сразу
+npm run test:all
+```
+
+Подробнее в [TESTING.md](./TESTING.md)
+
 ## 🚀 Запуск
 
 ### 1. База данных
@@ -102,10 +117,32 @@ npm run dev
 
 ## 📋 Roadmap
 
-- [ ] Подключить фронтенд к реальному API
-- [ ] Передача текста (следующий модуль)
+- [x] Подключить фронтенд к реальному API
+- [x] Передача текста (следующий модуль)
+- [x] Админ-панель с динамическими настройками
+- [x] Рефакторинг по SOLID
+- [x] Система тестирования
 - [ ] QR-коды для ссылок
 - [ ] Уведомления о скачивании
 - [ ] Docker контейнеризация
-- [ ] Rate limiting
 - [ ] S3 реализация
+
+## 💻 Полезные команды
+
+```bash
+# Разработка
+npm run dev              # Запустить frontend в dev mode
+cd backend && npm run dev  # Запустить backend в dev mode
+
+# Сборка
+npm run build            # Собрать frontend для продакшена
+
+# Тестирование
+npm run test:front       # Frontend тесты
+npm run test:back        # Backend тесты
+npm run test:all         # Все тесты
+npm run test:watch       # Frontend тесты в watch mode
+
+# Проверка типов
+npm run typecheck        # Проверить TypeScript типы
+```

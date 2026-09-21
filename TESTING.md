@@ -22,38 +22,45 @@
 
 ## Запуск тестов
 
-### Frontend тесты (Vitest)
+### Быстрый старт
 
 ```bash
-# Запустить все тесты
-npm run test
+# Frontend тесты
+npm run test:front
 
-# Watch mode
-npm run test:watch
+# Backend тесты
+npm run test:back
 
-# С покрытием
-npm run test:coverage
-```
-
-### Backend тесты (Jest)
-
-```bash
-cd backend
-
-# Запустить все тесты
-npm test
-
-# Watch mode
-npm run test:watch
-
-# С покрытием
-npm run test:coverage
-```
-
-### Все тесты сразу
-
-```bash
+# Все тесты сразу
 npm run test:all
+```
+
+### Подробные команды
+
+#### Frontend тесты (Vitest)
+
+```bash
+# Запустить все тесты
+npm run test:front
+
+# Watch mode
+npm run test:watch
+
+# С покрытием
+npm run test:coverage
+```
+
+#### Backend тесты (Jest)
+
+```bash
+# Запустить все тесты
+npm run test:back
+
+# Watch mode (из корня проекта)
+cd backend && npm run test:watch
+
+# С покрытием (из корня проекта)
+cd backend && npm run test:coverage
 ```
 
 ## Покрытие тестами

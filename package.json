@@ -6,11 +6,11 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test:front": "vitest run",
+    "test:back": "cd backend && npm test",
+    "test:all": "npm run test:front && npm run test:back",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "test:backend": "cd backend && npm test",
-    "test:all": "npm run test && npm run test:backend"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
