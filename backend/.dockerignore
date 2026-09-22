@@ -1,33 +1,36 @@
-# Dependencies
 node_modules
-npm-debug.log
-
-# Environment files
+dist
+build
+.git
+.gitignore
+.vscode
+.idea
+coverage
+*.log
+npm-debug.log*
+.DS_Store
 .env
 .env.local
 .env.*.local
-
-# Datastore
-datastore
-
-# IDE
-.vscode
-.idea
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Tests
+*.md
+!README.md
+tests
 __tests__
 *.test.*
 *.spec.*
-coverage
-.nyc_output
 jest.config.*
-
-# Misc
-*.log
-*.tmp
+frontend
+docker-compose.yml
+install.sh
+INSTALL*
+README*
+CODE_REVIEW*
+TESTING*
+CHANGES*
+ADMIN*
+DOCUMENTATION*
+datastore
+uploads
+temp
+postgres
+cert

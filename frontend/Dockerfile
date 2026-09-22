@@ -1,31 +1,33 @@
-# Этап 1: Сборка frontend
+# Multi-stage build для frontend
+
+# Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Копируем package.json
+# Copy package files
 COPY package*.json ./
 
-# Устанавливаем зависимости
+# Install dependencies
 RUN npm install
 
-# Копируем исходный код
+# Copy source code
 COPY . .
 
-# Собираем production build
+# Build application
 RUN npm run build
 
-# Этап 2: Production образ с nginx
+# Stage 2: Production
 FROM nginx:alpine
 
-# Копируем собранные файлы из builder
+# Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем nginx конфигурацию (будет создана install.sh)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Открываем порт
+# Expose port
 EXPOSE 80
 
-# Запускаем nginx
+# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

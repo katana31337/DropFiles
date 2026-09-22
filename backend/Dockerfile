@@ -1,21 +1,23 @@
+# Backend Dockerfile
+
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Копируем package.json
+# Copy package files
 COPY package*.json ./
 
-# Устанавливаем только production зависимости
+# Install production dependencies
 RUN npm install --omit=dev
 
-# Копируем исходный код
+# Copy source code
 COPY . .
 
-# Создаём директорию для данных
-RUN mkdir -p datastore
+# Create datastore directory
+RUN mkdir -p /app/datastore
 
-# Открываем порт
+# Expose port
 EXPOSE 3001
 
-# Запускаем сервер
+# Start application
 CMD ["node", "src/index.js"]
