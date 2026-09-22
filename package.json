@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:front": "vitest run",
+    "test:back": "cd backend && npm test",
+    "test:all": "npm run test:front && npm run test:back",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.1.0",
@@ -18,19 +22,25 @@
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-dropzone": "^14.2.3",
     "react-router-dom": "^6.8.0",
     "recharts": "^2.10.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "zustand": "^4.4.7"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.7",
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
     "@types/canvas-confetti": "^1.6.4",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@types/uuid": "^9.0.7",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^23.0.1",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.7.0",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^1.1.0"
   }
 }

@@ -97,8 +97,20 @@ echo ""
 info "Копирование исходного кода в $BASE_PATH..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Копируем backend
 sudo cp -r "$SCRIPT_DIR/backend" "$BASE_PATH/backend"
-sudo cp -r "$SCRIPT_DIR/frontend" "$BASE_PATH/frontend"
+
+# Копируем frontend (исходники в корне + Dockerfile из frontend/)
+sudo mkdir -p "$BASE_PATH/frontend"
+sudo cp -r "$SCRIPT_DIR/src" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/package.json" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/package-lock.json" "$BASE_PATH/frontend/" 2>/dev/null || true
+sudo cp "$SCRIPT_DIR/index.html" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/vite.config.js" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/tsconfig.json" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/.dockerignore" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/frontend/Dockerfile" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/frontend/nginx.conf" "$BASE_PATH/frontend/"
 
 success "Исходный код скопирован"
 echo ""
@@ -261,6 +273,7 @@ EMAIL=$EMAIL
 # Paths
 CERT_PATH=$CERT_PATH
 DATA_PATH=$DATA_PATH
+CONFIG_PATH=$CONFIG_PATH
 EOF
 
     success ".env файл создан"
