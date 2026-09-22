@@ -83,12 +83,36 @@ sudo mkdir -p "$DATA_PATH/postgres"
 success "Структура создана"
 echo ""
 echo "  $BASE_PATH/"
+echo "  ├── backend/           # Исходный код backend"
+echo "  ├── frontend/          # Исходный код frontend"
 echo "  ├── cert/              # SSL сертификаты"
 echo "  ├── config/            # Конфигурация"
 echo "  └── data/              # Данные"
 echo "      ├── uploads/       # Загруженные файлы"
 echo "      ├── temp/          # Временные файлы"
 echo "      └── postgres/      # PostgreSQL"
+echo ""
+
+# Копируем исходный код проекта
+info "Копирование исходного кода в $BASE_PATH..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Копируем backend
+sudo cp -r "$SCRIPT_DIR/backend" "$BASE_PATH/backend"
+
+# Копируем frontend (исходники в корне + Dockerfile из frontend/)
+sudo mkdir -p "$BASE_PATH/frontend"
+sudo cp -r "$SCRIPT_DIR/src" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/package.json" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/package-lock.json" "$BASE_PATH/frontend/" 2>/dev/null || true
+sudo cp "$SCRIPT_DIR/index.html" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/vite.config.js" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/tsconfig.json" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/.dockerignore" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/frontend/Dockerfile" "$BASE_PATH/frontend/"
+sudo cp "$SCRIPT_DIR/frontend/nginx.conf" "$BASE_PATH/frontend/"
+
+success "Исходный код скопирован"
 echo ""
 
 # ============================================
@@ -249,6 +273,7 @@ EMAIL=$EMAIL
 # Paths
 CERT_PATH=$CERT_PATH
 DATA_PATH=$DATA_PATH
+CONFIG_PATH=$CONFIG_PATH
 EOF
 
     success ".env файл создан"
@@ -289,8 +314,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: filedrop-backend
     environment:
       - PORT=3001
@@ -315,8 +340,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ../frontend
+      dockerfile: Dockerfile
     container_name: filedrop-frontend
     networks:
       - filedrop-network
@@ -360,8 +385,8 @@ services:
 
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ../backend
+      dockerfile: Dockerfile
     container_name: filedrop-backend
     environment:
       - PORT=3001
@@ -386,8 +411,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ../frontend
+      dockerfile: Dockerfile
     container_name: filedrop-frontend
     networks:
       - filedrop-network
@@ -689,6 +714,8 @@ echo -e "   User: $DB_USER"
 echo -e "   Password: $DB_PASSWORD"
 echo ""
 echo -e "${BLUE}📁 Storage:${NC}"
+echo -e "   Backend: $BASE_PATH/backend"
+echo -e "   Frontend: $BASE_PATH/frontend"
 echo -e "   Config: $CONFIG_PATH"
 echo -e "   Files: $DATA_PATH/uploads"
 echo -e "   Temp: $DATA_PATH/temp"
@@ -730,6 +757,8 @@ Database:
   Password: $DB_PASSWORD
 
 Storage:
+  Backend: $BASE_PATH/backend
+  Frontend: $BASE_PATH/frontend
   Config: $CONFIG_PATH
   Files: $DATA_PATH/uploads
   Temp: $DATA_PATH/temp

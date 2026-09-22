@@ -44,33 +44,6 @@ export async function getSetting(key, defaultValue = null) {
 }
 
 /**
- * Получить числовую настройку
- */
-export async function getNumericSetting(key, defaultValue = 0) {
-  const value = await getSetting(key);
-  const num = parseInt(value);
-  return isNaN(num) ? defaultValue : num;
-}
-
-/**
- * Получить настройку как массив чисел (через запятую)
- */
-export async function getNumberArraySetting(key, defaultValue = []) {
-  const value = await getSetting(key);
-  if (!value) return defaultValue;
-  return value.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
-}
-
-/**
- * Получить настройку как массив строк (через запятую)
- */
-export async function getStringArraySetting(key, defaultValue = []) {
-  const value = await getSetting(key);
-  if (!value) return defaultValue;
-  return value.split(',').map(s => s.trim());
-}
-
-/**
  * Обновить настройку
  */
 export async function updateSetting(key, value) {
