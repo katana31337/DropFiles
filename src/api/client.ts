@@ -242,37 +242,6 @@ export function incrementSnippetView(shortLink: string): Promise<void> {
   return apiRequest(`/snippets/${shortLink}/view`, { method: 'POST' });
 }
 
-/**
- * Получить историю сниппетов
- */
-export function getSnippetHistory(): Promise<{ snippets: SnippetHistoryItem[] }> {
-  return apiRequest('/snippets/history');
-}
-
-// ============================================
-// SESSIONS API
-// ============================================
-
-export interface SessionInfo {
-  id: string;
-  expiresAt: string;
-  expiresIn: number;
-}
-
-/**
- * Получить информацию о сессии
- */
-export function getSessionInfo(): Promise<SessionInfo> {
-  return apiRequest('/sessions/me');
-}
-
-/**
- * Удалить сессию
- */
-export function deleteSession(): Promise<{ success: boolean }> {
-  return apiRequest('/sessions/me', { method: 'DELETE' });
-}
-
 // ============================================
 // PUBLIC SETTINGS API
 // ============================================
