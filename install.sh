@@ -273,8 +273,6 @@ fi
 if [ "$SKIP_COMPOSE" != "true" ]; then
 if [ "$CERT_TYPE" = "self-signed" ]; then
     cat > "$CONFIG_PATH/docker-compose.yml" << EOF
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -291,8 +289,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: filedrop-backend
     environment:
       - PORT=3001
@@ -317,8 +315,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: filedrop-frontend
     networks:
       - filedrop-network
@@ -346,8 +344,6 @@ networks:
 EOF
 else
     cat > "$CONFIG_PATH/docker-compose.yml" << EOF
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15-alpine
@@ -364,8 +360,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: filedrop-backend
     environment:
       - PORT=3001
@@ -390,8 +386,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: filedrop-frontend
     networks:
       - filedrop-network
